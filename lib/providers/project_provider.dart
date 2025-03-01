@@ -125,12 +125,10 @@ class ProjectProvider extends ChangeNotifier {
     try {
       // Check active projects
       final activeProjects = _projectsBox.values.toList();
-      final activeProject = activeProjects.firstWhere(
-            (p) => p.id == projectId,
-        orElse: () => null as Project,
-      );
+      final activeProjectIndex = activeProjects.indexWhere((p) => p.id == projectId);
 
-      if (activeProject != null) {
+      if (activeProjectIndex != -1) {
+        final activeProject = activeProjects[activeProjectIndex];
         await _projectsBox.delete(activeProject.key);
         _cachedProjects = null; // Invalidate cache
         notifyListeners();
@@ -139,12 +137,10 @@ class ProjectProvider extends ChangeNotifier {
 
       // Check archived projects
       final archivedProjects = _archivedProjectsBox.values.toList();
-      final archivedProject = archivedProjects.firstWhere(
-            (p) => p.id == projectId,
-        orElse: () => null as Project,
-      );
+      final archivedProjectIndex = archivedProjects.indexWhere((p) => p.id == projectId);
 
-      if (archivedProject != null) {
+      if (archivedProjectIndex != -1) {
+        final archivedProject = archivedProjects[archivedProjectIndex];
         await _archivedProjectsBox.delete(archivedProject.key);
         _cachedArchivedProjects = null; // Invalidate cache
         notifyListeners();
@@ -162,13 +158,11 @@ class ProjectProvider extends ChangeNotifier {
     try {
       // First, check active projects
       final activeProjects = _projectsBox.values.toList();
-      final activeProject = activeProjects.firstWhere(
-            (p) => p.id == projectId,
-        orElse: () => null as Project,
-      );
+      final activeProjectIndex = activeProjects.indexWhere((p) => p.id == projectId);
 
-      if (activeProject != null) {
+      if (activeProjectIndex != -1) {
         // Move from active to archived
+        final activeProject = activeProjects[activeProjectIndex];
         await _projectsBox.delete(activeProject.key);
         activeProject.updateLastEdited();
         await _archivedProjectsBox.add(activeProject);
@@ -183,13 +177,11 @@ class ProjectProvider extends ChangeNotifier {
 
       // Then check archived projects
       final archivedProjects = _archivedProjectsBox.values.toList();
-      final archivedProject = archivedProjects.firstWhere(
-            (p) => p.id == projectId,
-        orElse: () => null as Project,
-      );
+      final archivedProjectIndex = archivedProjects.indexWhere((p) => p.id == projectId);
 
-      if (archivedProject != null) {
+      if (archivedProjectIndex != -1) {
         // Move from archived to active
+        final archivedProject = archivedProjects[archivedProjectIndex];
         await _archivedProjectsBox.delete(archivedProject.key);
         archivedProject.updateLastEdited();
         await _projectsBox.add(archivedProject);

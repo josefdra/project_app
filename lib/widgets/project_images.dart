@@ -79,12 +79,12 @@ class ProjectImages extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: CupertinoButton.filled(
               onPressed: () => _pickImage(context),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(CupertinoIcons.photo_camera),
-                  const SizedBox(width: 8),
-                  const Text('Foto hinzufügen'),
+                  Icon(CupertinoIcons.photo_camera),
+                  SizedBox(width: 8),
+                  Text('Foto hinzufügen'),
                 ],
               ),
             ),
@@ -217,8 +217,8 @@ class _ImageTile extends StatelessWidget {
             child: CupertinoButton(
               padding: EdgeInsets.zero,
               minSize: 30,
-              child: const Icon(CupertinoIcons.delete, size: 20, color: CupertinoColors.white),
               onPressed: onDelete,
+              child: const Icon(CupertinoIcons.delete, size: 20, color: CupertinoColors.white),
             ),
           ),
         ),

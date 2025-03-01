@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons;
 import 'package:provider/provider.dart';
 import '../models/project.dart';
 import '../providers/project_provider.dart';

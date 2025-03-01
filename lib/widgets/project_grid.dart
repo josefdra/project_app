@@ -40,12 +40,7 @@ class ProjectGrid extends StatelessWidget {
                 const SizedBox(height: 24),
                 if (!archived)
                   CupertinoButton.filled(
-                      onPressed: () {
-                        // Use a post-frame callback to avoid build issues
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _showNewProjectDialog(context, provider);
-                        });
-                      },
+                      onPressed: () => _showNewProjectDialog(context, provider),
                       child: const Text('Neues Projekt erstellen')
                   ),
               ],
@@ -55,9 +50,9 @@ class ProjectGrid extends StatelessWidget {
 
         return GridView.builder(
           padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            childAspectRatio: 1,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.9,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
           ),
@@ -145,14 +140,12 @@ class ProjectGrid extends StatelessWidget {
       // Close dialog
       Navigator.pop(context);
 
-      // Wait for the frame to complete before navigating
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushNamed(
-          context,
-          '/project',
-          arguments: {'projectId': newProject.id},
-        );
-      });
+      // Navigate safely
+      Navigator.pushNamed(
+        context,
+        '/project',
+        arguments: {'projectId': newProject.id},
+      );
     } catch (e) {
       debugPrint('Error creating project: $e');
     }
@@ -169,18 +162,17 @@ class ProjectTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Use post-frame callback to avoid build issues during navigation
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.pushNamed(
-            context,
-            '/project',
-            arguments: {'projectId': project.id},
-          );
-        });
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: () {
+        Navigator.pushNamed(
+          context,
+          '/project',
+          arguments: {'projectId': project.id},
+        );
       },
       child: Container(
+        width: double.infinity,
         decoration: BoxDecoration(
           color: CupertinoColors.systemBackground,
           borderRadius: BorderRadius.circular(12),
@@ -197,32 +189,41 @@ class ProjectTile extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 project.name,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
+                  color: CupertinoColors.label,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
-                '${project.items.length} Positionen',
+                '${project.items.length} ${project.items.length == 1 ? 'Position' : 'Positionen'}',
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   color: CupertinoColors.systemGrey,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '${project.totalPrice.toStringAsFixed(2)} €',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: CupertinoColors.systemGreen,
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${project.totalPrice.toStringAsFixed(2)} €',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: CupertinoColors.systemGreen,
+                  ),
                 ),
               ),
             ],
