@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../models/project.dart';
 import '../providers/project_provider.dart';
+import '../services/backup_manager.dart';
 import '../widgets/project_grid.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -38,6 +39,15 @@ class _HomeScreenState extends State<HomeScreen> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.cloud_upload),
+              onPressed: () {
+                // Show backup screen
+                final backupManager = BackupManager();
+                backupManager.showBackupScreen(context);
+              },
+            ),
             CupertinoButton(
               padding: EdgeInsets.zero,
               child: const Icon(CupertinoIcons.archivebox),

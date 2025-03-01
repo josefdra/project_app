@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:projekt_app/services/auto_backup_service.dart';
+import 'package:projekt_app/services/backup_manager.dart';
 import 'package:provider/provider.dart';
 import 'models/project.dart';
 import 'providers/project_provider.dart';
@@ -22,6 +24,28 @@ void main() async {
   // Open boxes
   await Hive.openBox<Project>('projects');
   await Hive.openBox<Project>('archived_projects');
+
+  final autoBackupService = AutoBackupService();
+  final backupManager = BackupManager();
+
+// Check if auto backup is due
+  autoBackupService.isAutoBackupDue().then((isDue) async {
+    if (isDue) {
+      // Run backup in background
+      try {
+        // Create cloud backup without showing UI
+        final success = await backupManager.createCloudBackup(null);
+
+        if (success) {
+          // Update last auto backup date
+          await autoBackupService.setLastAutoBackupDate(DateTime.now());
+        }
+      } catch (e) {
+        debugPrint('Auto backup failed: $e');
+        // We don't show errors for auto backup to avoid disrupting the user
+      }
+    }
+  });
 
   runApp(const MyApp());
 }
