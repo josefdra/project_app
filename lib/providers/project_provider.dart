@@ -64,21 +64,28 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Project getProjectById(String id) {
+  Project? getProjectById(String id) {
     try {
+      // Ensure cache is up to date
+      if (_cachedProjects == null || _cachedArchivedProjects == null) {
+        _refreshCache();
+      }
+
       // Check active projects first
-      for (final project in projects) {
+      for (final project in _cachedProjects!) {
         if (project.id == id) return project;
       }
 
       // Then check archived projects
-      for (final project in archivedProjects) {
+      for (final project in _cachedArchivedProjects!) {
         if (project.id == id) return project;
       }
 
-      throw Exception('Project not found: $id');
+      // Return null instead of throwing an exception
+      return null;
     } catch (e) {
-      throw Exception('Project not found: $id');
+      debugPrint('Error finding project: $e');
+      return null;
     }
   }
 
@@ -123,34 +130,35 @@ class ProjectProvider extends ChangeNotifier {
 
   Future<void> deleteProject(String projectId) async {
     try {
-      // Check active projects
+      // First check active projects
       final activeProjects = _projectsBox.values.toList();
-      final activeProjectIndex = activeProjects.indexWhere((p) => p.id == projectId);
-
-      if (activeProjectIndex != -1) {
-        final activeProject = activeProjects[activeProjectIndex];
-        await _projectsBox.delete(activeProject.key);
-        _cachedProjects = null; // Invalidate cache
-        notifyListeners();
-        return;
+      for (final project in activeProjects) {
+        if (project.id == projectId) {
+          // Found in active projects
+          await _projectsBox.delete(project.key);
+          _cachedProjects = null; // Invalidate cache
+          notifyListeners();
+          return;
+        }
       }
 
-      // Check archived projects
+      // Then check archived projects
       final archivedProjects = _archivedProjectsBox.values.toList();
-      final archivedProjectIndex = archivedProjects.indexWhere((p) => p.id == projectId);
-
-      if (archivedProjectIndex != -1) {
-        final archivedProject = archivedProjects[archivedProjectIndex];
-        await _archivedProjectsBox.delete(archivedProject.key);
-        _cachedArchivedProjects = null; // Invalidate cache
-        notifyListeners();
-        return;
+      for (final project in archivedProjects) {
+        if (project.id == projectId) {
+          // Found in archived projects
+          await _archivedProjectsBox.delete(project.key);
+          _cachedArchivedProjects = null; // Invalidate cache
+          notifyListeners();
+          return;
+        }
       }
 
-      throw Exception('Project not found for deletion: $projectId');
+      // Not found, but don't throw an error
+      debugPrint('Project not found for deletion: $projectId');
     } catch (e) {
       debugPrint('Error deleting project: $e');
-      rethrow;
+      // Don't rethrow the exception
     }
   }
 

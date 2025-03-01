@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import '../models/project.dart';
 import '../providers/project_provider.dart';
 import '../widgets/project_details.dart';
 import '../widgets/project_images.dart';
@@ -18,179 +19,259 @@ class ProjectScreen extends StatefulWidget {
 }
 
 class _ProjectScreenState extends State<ProjectScreen> {
+  // Keep track of whether the screen is active
+  bool _isActive = true;
+
   @override
   void initState() {
     super.initState();
-
-    // Make sure we have fresh data when screen loads
+    // Check if project exists after first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProjectProvider>(context, listen: false).refreshData();
+      _checkProjectExists();
     });
+  }
+
+  @override
+  void dispose() {
+    _isActive = false;
+    super.dispose();
+  }
+
+  // Safely check if project exists
+  void _checkProjectExists() {
+    if (!mounted || !_isActive) return;
+
+    final provider = Provider.of<ProjectProvider>(context, listen: false);
+    final project = provider.getProjectById(widget.projectId);
+
+    if (project == null && mounted && _isActive) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ProjectProvider>(
       builder: (context, provider, child) {
-        try {
-          final project = provider.getProjectById(widget.projectId);
-          final isArchived = provider.archivedProjects.any((p) => p.id == widget.projectId);
+        final project = provider.getProjectById(widget.projectId);
 
-          return CupertinoPageScaffold(
+        if (project == null) {
+          return const CupertinoPageScaffold(
             navigationBar: CupertinoNavigationBar(
-              middle: Text(project.name),
-              // Add a back button that safely handles navigation
-              leading: CupertinoNavigationBarBackButton(
-                onPressed: () {
-                  // Use post-frame callback for safe navigation
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    Navigator.of(context).pop();
-                  });
-                },
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: const Icon(CupertinoIcons.doc_text),
-                    onPressed: () {
-                      // Call PDF service in a safe way
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        PDFService.generatePDF(project);
-                      });
-                    },
-                  ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: Icon(
-                      isArchived ? CupertinoIcons.tray_arrow_up : CupertinoIcons.archivebox,
-                    ),
-                    onPressed: () {
-                      // Toggle archive status in a safe way
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        provider.toggleArchiveStatus(widget.projectId).then((_) {
-                          // Show a confirmation message
-                          _showActionMessage(
-                              context,
-                              isArchived
-                                  ? 'Projekt wurde wiederhergestellt'
-                                  : 'Projekt wurde archiviert'
-                          );
-                        });
-                      });
-                    },
-                  ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: const Icon(CupertinoIcons.ellipsis),
-                    onPressed: () => _showActionSheet(context, project, provider, isArchived),
-                  ),
-                ],
-              ),
-            ),
-            child: SafeArea(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    ProjectDetails(project: project),
-                    ProjectImages(project: project),
-                  ],
-                ),
-              ),
-            ),
-          );
-        } catch (e) {
-          // Handle case where project doesn't exist
-          return CupertinoPageScaffold(
-            navigationBar: const CupertinoNavigationBar(
-              middle: Text('Projekt nicht gefunden'),
+              middle: Text('Laden...'),
             ),
             child: SafeArea(
               child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(CupertinoIcons.exclamationmark_triangle,
-                        size: 64,
-                        color: CupertinoColors.systemRed
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Projekt konnte nicht gefunden werden',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                    const SizedBox(height: 24),
-                    CupertinoButton.filled(
-                      onPressed: () {
-                        // Use post-frame callback for safe navigation
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Navigator.of(context).pop();
-                        });
-                      },
-                      child: const Text('Zurück zur Übersicht'),
-                    ),
-                  ],
-                ),
+                child: CupertinoActivityIndicator(),
               ),
             ),
           );
         }
+
+        final isArchived = provider.archivedProjects.any((p) => p.id == widget.projectId);
+
+        return CupertinoPageScaffold(
+          navigationBar: CupertinoNavigationBar(
+            middle: Text(project.name),
+            leading: CupertinoNavigationBarBackButton(
+              onPressed: () {
+                if (mounted && _isActive) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(CupertinoIcons.doc_text),
+                  onPressed: () {
+                    if (mounted && _isActive) {
+                      PDFService.generatePDF(project);
+                    }
+                  },
+                ),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: Icon(
+                    isArchived ? CupertinoIcons.tray_arrow_up : CupertinoIcons.archivebox,
+                  ),
+                  onPressed: () {
+                    if (mounted && _isActive) {
+                      _toggleArchiveStatus(provider, isArchived);
+                    }
+                  },
+                ),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(CupertinoIcons.ellipsis),
+                  onPressed: () {
+                    if (mounted && _isActive) {
+                      _showActionSheet(context, project, provider, isArchived);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  ProjectDetails(project: project),
+                  ProjectImages(project: project),
+                ],
+              ),
+            ),
+          ),
+        );
       },
     );
   }
 
-  void _showActionSheet(BuildContext context, dynamic project, ProjectProvider provider, bool isArchived) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showCupertinoModalPopup<void>(
-        context: context,
-        builder: (BuildContext context) => CupertinoActionSheet(
-          title: const Text('Projekt-Aktionen'),
-          actions: <CupertinoActionSheetAction>[
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                _showRenameDialog(context, project.name, provider);
-              },
-              child: const Text('Umbenennen'),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(context);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  PDFService.generatePDF(project);
-                });
-              },
-              child: const Text('PDF erstellen'),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.pop(context);
-                _confirmDelete(context, provider);
-              },
-              child: const Text('Löschen'),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Abbrechen'),
-          ),
-        ),
-      );
-    });
+  // Handle archive toggle with proper state checking
+  Future<void> _toggleArchiveStatus(ProjectProvider provider, bool isArchived) async {
+    try {
+      await provider.toggleArchiveStatus(widget.projectId);
+      if (mounted && _isActive) {
+        _showActionMessage(
+            context,
+            isArchived
+                ? 'Projekt wurde wiederhergestellt'
+                : 'Projekt wurde archiviert'
+        );
+      }
+    } catch (e) {
+      if (mounted && _isActive) {
+        _showActionMessage(context, 'Fehler beim Ändern des Archivstatus');
+      }
+    }
   }
 
+  // Simple action message dialog
+  void _showActionMessage(BuildContext context, String message) {
+    if (!mounted || !_isActive) return;
+
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        // Auto-dismiss after 2 seconds
+        Future.delayed(const Duration(seconds: 2), () {
+          if (Navigator.canPop(dialogContext)) {
+            Navigator.of(dialogContext).pop();
+          }
+        });
+
+        return CupertinoAlertDialog(
+          content: Text(message),
+        );
+      },
+    );
+  }
+
+  // Show action sheet with proper state checking
+  void _showActionSheet(BuildContext context, Project project, ProjectProvider provider, bool isArchived) {
+    if (!mounted || !_isActive) return;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (actionContext) => CupertinoActionSheet(
+        title: const Text('Projekt-Aktionen'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(actionContext);
+              if (mounted && _isActive) {
+                _showRenameDialog(context, project.name, provider);
+              }
+            },
+            child: const Text('Umbenennen'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(actionContext);
+              if (mounted && _isActive) {
+                PDFService.generatePDF(project);
+              }
+            },
+            child: const Text('PDF erstellen'),
+          ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(actionContext);
+              if (mounted && _isActive) {
+                _confirmDelete(context, provider);
+              }
+            },
+            child: const Text('Löschen'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () {
+            Navigator.pop(actionContext);
+          },
+          child: const Text('Abbrechen'),
+        ),
+      ),
+    );
+  }
+
+  // Confirm delete with proper state checking
+  void _confirmDelete(BuildContext context, ProjectProvider provider) {
+    if (!mounted || !_isActive) return;
+
+    // Store current context - this is our screen's context
+    final screenContext = context;
+
+    showCupertinoDialog(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: const Text('Projekt löschen'),
+        content: const Text(
+            'Sind Sie sicher, dass Sie dieses Projekt löschen möchten? '
+                'Diese Aktion kann nicht rückgängig gemacht werden.'
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(dialogContext),
+            isDestructiveAction: true,
+            child: const Text('Abbrechen'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              // First close the confirmation dialog
+              Navigator.pop(dialogContext);
+
+              // Direct deletion and navigation
+              provider.deleteProject(widget.projectId).then((_) {
+                // Navigate back if we're still mounted
+                if (mounted && _isActive) {
+                  Navigator.of(screenContext).pop();
+                }
+              });
+            },
+            isDestructiveAction: true,
+            child: const Text('Löschen'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show rename dialog with proper state checking
   void _showRenameDialog(BuildContext context, String currentName, ProjectProvider provider) {
+    if (!mounted || !_isActive) return;
+
     final controller = TextEditingController(text: currentName);
     String errorText = '';
 
     showCupertinoDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (stateContext, setState) {
           return CupertinoAlertDialog(
             title: const Text('Projekt umbenennen'),
             content: Column(
@@ -216,7 +297,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
             ),
             actions: [
               CupertinoDialogAction(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 isDestructiveAction: true,
                 child: const Text('Abbrechen'),
               ),
@@ -224,20 +305,20 @@ class _ProjectScreenState extends State<ProjectScreen> {
                 onPressed: () {
                   final newName = controller.text.trim();
                   if (newName.isNotEmpty) {
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
 
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      try {
-                        final project = provider.getProjectById(widget.projectId);
+                    // Only proceed if we're still mounted
+                    if (mounted && _isActive) {
+                      final project = provider.getProjectById(widget.projectId);
+                      if (project != null) {
                         project.name = newName;
                         provider.updateProject(project).then((_) {
-                          setState(() {}); // Refresh the UI
-                          _showActionMessage(context, 'Projekt wurde umbenannt');
+                          if (mounted && _isActive) {
+                            _showActionMessage(context, 'Projekt wurde umbenannt');
+                          }
                         });
-                      } catch (e) {
-                        debugPrint('Error renaming project: $e');
                       }
-                    });
+                    }
                   } else {
                     setState(() {
                       errorText = 'Projektname darf nicht leer sein';
@@ -250,59 +331,6 @@ class _ProjectScreenState extends State<ProjectScreen> {
           );
         },
       ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, ProjectProvider provider) {
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Projekt löschen'),
-        content: const Text(
-            'Sind Sie sicher, dass Sie dieses Projekt löschen möchten? '
-                'Diese Aktion kann nicht rückgängig gemacht werden.'
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            isDestructiveAction: true,
-            child: const Text('Abbrechen'),
-          ),
-          CupertinoDialogAction(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                provider.deleteProject(widget.projectId).then((_) {
-                  Navigator.pop(context); // Go back to previous screen after deletion
-                });
-              });
-            },
-            isDefaultAction: true,
-            isDestructiveAction: true,
-            child: const Text('Löschen'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showActionMessage(BuildContext context, String message) {
-    showCupertinoDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) {
-        // Auto-dismiss after 2 seconds
-        Future.delayed(const Duration(seconds: 2), () {
-          if (Navigator.canPop(context)) {
-            Navigator.of(context).pop();
-          }
-        });
-
-        return CupertinoAlertDialog(
-          content: Text(message),
-        );
-      },
     );
   }
 }
