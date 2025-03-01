@@ -50,9 +50,9 @@ class ProjectAdapter extends TypeAdapter<Project> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ProjectAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+          other is ProjectAdapter &&
+              runtimeType == other.runtimeType &&
+              typeId == other.typeId;
 }
 
 class ProjectItemAdapter extends TypeAdapter<ProjectItem> {
@@ -93,7 +93,7 @@ class ProjectItemAdapter extends TypeAdapter<ProjectItem> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is ProjectItemAdapter &&
-          runtimeType == other.runtimeType &&
-          typeId == other.typeId;
+          other is ProjectItemAdapter &&
+              runtimeType == other.runtimeType &&
+              typeId == other.typeId;
 }

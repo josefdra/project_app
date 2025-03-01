@@ -7,8 +7,9 @@ class PDFService {
   static Future<void> generatePDF(Project project) async {
     final pdf = pw.Document();
 
-    final font = await PdfGoogleFonts.robotoRegular();
-    final boldFont = await PdfGoogleFonts.robotoBold();
+    // Use a standard font instead of Google Fonts
+    final font = pw.Font.helvetica();
+    final boldFont = pw.Font.helveticaBold();
 
     pdf.addPage(
       pw.Page(
@@ -78,39 +79,39 @@ class PDFService {
 
   static pw.Widget _buildItemsTable(Project project, pw.Font font, pw.Font boldFont) {
     return pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(horizontal: 10),
-        child: pw.Table(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10),
+      child: pw.Table(
         border: pw.TableBorder.all(color: PdfColors.grey300),
         columnWidths: {
-        0: const pw.FlexColumnWidth(4), // Beschreibung
-        1: const pw.FlexColumnWidth(1), // Menge
-        2: const pw.FlexColumnWidth(1), // Einheit
-        3: const pw.FlexColumnWidth(1.5), // Preis/E
-        4: const pw.FlexColumnWidth(1.5), // Gesamt
-      },
-      children: [
-        // Header
-        pw.TableRow(
-          decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-          children: [
-            _buildTableHeader('Beschreibung', boldFont),
-            _buildTableHeader('Menge', boldFont),
-            _buildTableHeader('Einheit', boldFont),
-            _buildTableHeader('Preis/Einheit', boldFont),
-            _buildTableHeader('Gesamt', boldFont),
-          ],
-        ),
-        // Daten
-        ...project.items.map((item) => pw.TableRow(
-          children: [
-            _buildTableCell(item.description, font),
-            _buildTableCell(item.quantity.toString(), font),
-            _buildTableCell(item.unit, font),
-            _buildTableCell('${item.pricePerUnit.toStringAsFixed(2)} €', font),
-            _buildTableCell('${item.totalPrice.toStringAsFixed(2)} €', font),
-          ],
-        )),
-      ],
+          0: const pw.FlexColumnWidth(4), // Beschreibung
+          1: const pw.FlexColumnWidth(1), // Menge
+          2: const pw.FlexColumnWidth(1), // Einheit
+          3: const pw.FlexColumnWidth(1.5), // Preis/E
+          4: const pw.FlexColumnWidth(1.5), // Gesamt
+        },
+        children: [
+          // Header
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+            children: [
+              _buildTableHeader('Beschreibung', boldFont),
+              _buildTableHeader('Menge', boldFont),
+              _buildTableHeader('Einheit', boldFont),
+              _buildTableHeader('Preis/Einheit', boldFont),
+              _buildTableHeader('Gesamt', boldFont),
+            ],
+          ),
+          // Data rows
+          ...project.items.map((item) => pw.TableRow(
+            children: [
+              _buildTableCell(item.description, font),
+              _buildTableCell(item.quantity.toString(), font),
+              _buildTableCell(item.unit, font),
+              _buildTableCell('${item.pricePerUnit.toStringAsFixed(2)} €', font),
+              _buildTableCell('${item.totalPrice.toStringAsFixed(2)} €', font),
+            ],
+          )),
+        ],
       ),
     );
   }

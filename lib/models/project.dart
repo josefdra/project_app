@@ -38,7 +38,12 @@ class Project extends HiveObject {
         lastEdited = lastEdited ?? DateTime.now();
 
   double get totalPrice {
-    return items.fold(0, (sum, item) => sum + (item.quantity * item.pricePerUnit));
+    return items.fold(0, (sum, item) => sum + item.totalPrice);
+  }
+
+  // Update lastEdited timestamp
+  void updateLastEdited() {
+    lastEdited = DateTime.now();
   }
 }
 

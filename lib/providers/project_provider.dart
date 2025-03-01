@@ -1,76 +1,211 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/project.dart';
 
 class ProjectProvider extends ChangeNotifier {
   final Box<Project> _projectsBox = Hive.box<Project>('projects');
   final Box<Project> _archivedProjectsBox = Hive.box<Project>('archived_projects');
+  String _searchQuery = '';
 
-  List<Project> get projects => _projectsBox.values.toList()
-    ..sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
+  // Cache the projects to avoid rebuilding during navigation
+  List<Project>? _cachedProjects;
+  List<Project>? _cachedArchivedProjects;
 
-  List<Project> get archivedProjects => _archivedProjectsBox.values.toList()
-    ..sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
+  // Getter for projects with lazy loading pattern
+  List<Project> get projects {
+    if (_cachedProjects == null) {
+      _refreshCache();
+    }
+
+    final allProjects = _cachedProjects!;
+
+    if (_searchQuery.isEmpty) return allProjects;
+
+    return allProjects.where((project) =>
+        project.name.toLowerCase().contains(_searchQuery.toLowerCase())
+    ).toList();
+  }
+
+  // Getter for archived projects with lazy loading pattern
+  List<Project> get archivedProjects {
+    if (_cachedArchivedProjects == null) {
+      _refreshCache();
+    }
+
+    final allArchived = _cachedArchivedProjects!;
+
+    if (_searchQuery.isEmpty) return allArchived;
+
+    return allArchived.where((project) =>
+        project.name.toLowerCase().contains(_searchQuery.toLowerCase())
+    ).toList();
+  }
+
+  // Refresh the cached lists - called when needed
+  void _refreshCache() {
+    final activeProjects = _projectsBox.values.toList()
+      ..sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
+
+    final archiveProjects = _archivedProjectsBox.values.toList()
+      ..sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
+
+    _cachedProjects = activeProjects;
+    _cachedArchivedProjects = archiveProjects;
+  }
+
+  // Explicitly refresh data when needed
+  void refreshData() {
+    _refreshCache();
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
 
   Project getProjectById(String id) {
-    return _projectsBox.values.firstWhere(
-          (project) => project.id == id,
-      orElse: () => _archivedProjectsBox.values.firstWhere(
-            (project) => project.id == id,
-        orElse: () => throw Exception('Project not found'),
-      ),
-    );
+    try {
+      // Check active projects first
+      for (final project in projects) {
+        if (project.id == id) return project;
+      }
+
+      // Then check archived projects
+      for (final project in archivedProjects) {
+        if (project.id == id) return project;
+      }
+
+      throw Exception('Project not found: $id');
+    } catch (e) {
+      throw Exception('Project not found: $id');
+    }
   }
 
   Future<void> addProject(Project project) async {
     await _projectsBox.add(project);
+    _cachedProjects = null; // Invalidate cache
     notifyListeners();
   }
 
   Future<void> updateProject(Project project) async {
-    final index = _projectsBox.values.toList().indexWhere((p) => p.id == project.id);
-    if (index != -1) {
-      await _projectsBox.putAt(index, project);
-      notifyListeners();
+    project.updateLastEdited();
+
+    try {
+      // Find the project in the active projects box
+      final activeProjects = _projectsBox.values.toList();
+      final activeIndex = activeProjects.indexWhere((p) => p.id == project.id);
+
+      if (activeIndex != -1) {
+        await _projectsBox.putAt(activeIndex, project);
+        _cachedProjects = null; // Invalidate cache
+        notifyListeners();
+        return;
+      }
+
+      // If not found in active projects, check archived projects
+      final archivedProjects = _archivedProjectsBox.values.toList();
+      final archivedIndex = archivedProjects.indexWhere((p) => p.id == project.id);
+
+      if (archivedIndex != -1) {
+        await _archivedProjectsBox.putAt(archivedIndex, project);
+        _cachedArchivedProjects = null; // Invalidate cache
+        notifyListeners();
+        return;
+      }
+
+      throw Exception('Project not found for update: ${project.id}');
+    } catch (e) {
+      debugPrint('Error updating project: $e');
+      rethrow;
     }
   }
 
-  Future<void> deleteProjects(List<String> projectIds) async {
-    await _projectsBox.deleteAll(
-        _projectsBox.values.where((p) => projectIds.contains(p.id)).map((p) => p.key)
-    );
-    await _archivedProjectsBox.deleteAll(
-        _archivedProjectsBox.values.where((p) => projectIds.contains(p.id)).map((p) => p.key)
-    );
-    notifyListeners();
+  Future<void> deleteProject(String projectId) async {
+    try {
+      // Check active projects
+      final activeProjects = _projectsBox.values.toList();
+      final activeProject = activeProjects.firstWhere(
+            (p) => p.id == projectId,
+        orElse: () => null as Project,
+      );
+
+      if (activeProject != null) {
+        await _projectsBox.delete(activeProject.key);
+        _cachedProjects = null; // Invalidate cache
+        notifyListeners();
+        return;
+      }
+
+      // Check archived projects
+      final archivedProjects = _archivedProjectsBox.values.toList();
+      final archivedProject = archivedProjects.firstWhere(
+            (p) => p.id == projectId,
+        orElse: () => null as Project,
+      );
+
+      if (archivedProject != null) {
+        await _archivedProjectsBox.delete(archivedProject.key);
+        _cachedArchivedProjects = null; // Invalidate cache
+        notifyListeners();
+        return;
+      }
+
+      throw Exception('Project not found for deletion: $projectId');
+    } catch (e) {
+      debugPrint('Error deleting project: $e');
+      rethrow;
+    }
   }
 
   Future<void> toggleArchiveStatus(String projectId) async {
-    final activeProject = _projectsBox.values.firstWhere(
-          (p) => p.id == projectId,
-      orElse: () => _archivedProjectsBox.values.firstWhere(
+    try {
+      // First, check active projects
+      final activeProjects = _projectsBox.values.toList();
+      final activeProject = activeProjects.firstWhere(
             (p) => p.id == projectId,
-        orElse: () => throw Exception('Project not found'),
-      ),
-    );
+        orElse: () => null as Project,
+      );
 
-    if (_projectsBox.values.contains(activeProject)) {
-      await _projectsBox.delete(activeProject.key);
-      await _archivedProjectsBox.add(activeProject);
-    } else {
-      await _archivedProjectsBox.delete(activeProject.key);
-      await _projectsBox.add(activeProject);
+      if (activeProject != null) {
+        // Move from active to archived
+        await _projectsBox.delete(activeProject.key);
+        activeProject.updateLastEdited();
+        await _archivedProjectsBox.add(activeProject);
+
+        // Invalidate both caches
+        _cachedProjects = null;
+        _cachedArchivedProjects = null;
+
+        notifyListeners();
+        return;
+      }
+
+      // Then check archived projects
+      final archivedProjects = _archivedProjectsBox.values.toList();
+      final archivedProject = archivedProjects.firstWhere(
+            (p) => p.id == projectId,
+        orElse: () => null as Project,
+      );
+
+      if (archivedProject != null) {
+        // Move from archived to active
+        await _archivedProjectsBox.delete(archivedProject.key);
+        archivedProject.updateLastEdited();
+        await _projectsBox.add(archivedProject);
+
+        // Invalidate both caches
+        _cachedProjects = null;
+        _cachedArchivedProjects = null;
+
+        notifyListeners();
+        return;
+      }
+
+      throw Exception('Project not found for archive toggle: $projectId');
+    } catch (e) {
+      debugPrint('Error toggling archive status: $e');
+      throw Exception('Error toggling archive status: $e');
     }
-
-    notifyListeners();
-  }
-
-  List<Project> searchProjects(String query, {bool archived = false}) {
-    final searchList = archived ? archivedProjects : projects;
-    if (query.isEmpty) return searchList;
-
-    return searchList.where((project) =>
-        project.name.toLowerCase().contains(query.toLowerCase())
-    ).toList();
   }
 }
