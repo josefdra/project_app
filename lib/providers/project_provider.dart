@@ -130,35 +130,29 @@ class ProjectProvider extends ChangeNotifier {
 
   Future<void> deleteProject(String projectId) async {
     try {
-      // First check active projects
-      final activeProjects = _projectsBox.values.toList();
-      for (final project in activeProjects) {
-        if (project.id == projectId) {
-          // Found in active projects
-          await _projectsBox.delete(project.key);
-          _cachedProjects = null; // Invalidate cache
+      // First look in active projects
+      for (int i = 0; i < _projectsBox.length; i++) {
+        final project = _projectsBox.getAt(i);
+        if (project?.id == projectId) {
+          await _projectsBox.deleteAt(i);
+          _cachedProjects = null;
           notifyListeners();
           return;
         }
       }
 
-      // Then check archived projects
-      final archivedProjects = _archivedProjectsBox.values.toList();
-      for (final project in archivedProjects) {
-        if (project.id == projectId) {
-          // Found in archived projects
-          await _archivedProjectsBox.delete(project.key);
-          _cachedArchivedProjects = null; // Invalidate cache
+      // Then look in archived projects
+      for (int i = 0; i < _archivedProjectsBox.length; i++) {
+        final project = _archivedProjectsBox.getAt(i);
+        if (project?.id == projectId) {
+          await _archivedProjectsBox.deleteAt(i);
+          _cachedArchivedProjects = null;
           notifyListeners();
           return;
         }
       }
-
-      // Not found, but don't throw an error
-      debugPrint('Project not found for deletion: $projectId');
     } catch (e) {
       debugPrint('Error deleting project: $e');
-      // Don't rethrow the exception
     }
   }
 

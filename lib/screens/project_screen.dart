@@ -219,15 +219,12 @@ class _ProjectScreenState extends State<ProjectScreen> {
     );
   }
 
-  // Confirm delete with proper state checking
   void _confirmDelete(BuildContext context, ProjectProvider provider) {
     if (!mounted || !_isActive) return;
 
-    // Store current context - this is our screen's context
-    final screenContext = context;
-
     showCupertinoDialog(
       context: context,
+      barrierDismissible: false, // Prevent accidental dismissal
       builder: (dialogContext) => CupertinoAlertDialog(
         title: const Text('Projekt löschen'),
         content: const Text(
@@ -240,17 +237,20 @@ class _ProjectScreenState extends State<ProjectScreen> {
             isDestructiveAction: true,
             child: const Text('Abbrechen'),
           ),
-          CupertinoActionSheetAction(
+          CupertinoDialogAction(
             onPressed: () {
-              // First close the confirmation dialog
+              // Close the dialog first
               Navigator.pop(dialogContext);
 
-              // Direct deletion and navigation
-              provider.deleteProject(widget.projectId).then((_) {
-                // Navigate back if we're still mounted
-                if (mounted && _isActive) {
-                  Navigator.of(screenContext).pop();
-                }
+              // Mark as inactive to prevent further UI updates
+              _isActive = false;
+
+              // Navigate away first, then delete
+              Navigator.of(context).pop();
+
+              // Delete project after navigation completes
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                provider.deleteProject(widget.projectId);
               });
             },
             isDestructiveAction: true,
