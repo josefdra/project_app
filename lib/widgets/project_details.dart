@@ -29,13 +29,12 @@ class _ProjectDetailsState extends State<ProjectDetails> {
   }
 
   void _addItem() {
-    final item = ProjectItem();
-    widget.project.items.add(item);
-    Provider.of<ProjectProvider>(context, listen: false).updateProject(widget.project);
-    _showEditDialog(item);
+    // Create a temporary item but don't add it to the project yet
+    final tempItem = ProjectItem();
+    _showEditDialog(tempItem, null, true);
   }
 
-  void _showEditDialog(ProjectItem item, [int? index]) {
+  void _showEditDialog(ProjectItem item, [int? index, bool isNewItem = false]) {
     final descriptionController = TextEditingController(text: item.description);
     final quantityController = TextEditingController(
         text: item.quantity == 0 ? "" : item.quantity.toString()
@@ -63,7 +62,10 @@ class _ProjectDetailsState extends State<ProjectDetails> {
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       child: const Text('Abbrechen'),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        // Just close the dialog without saving the item
+                        Navigator.pop(context);
+                      },
                     ),
                     const Text(
                       'Position bearbeiten',
@@ -82,6 +84,11 @@ class _ProjectDetailsState extends State<ProjectDetails> {
                             errorText = 'Bitte geben Sie eine Beschreibung ein';
                           });
                           return;
+                        }
+
+                        // Add the item to the project only if it's new
+                        if (isNewItem) {
+                          widget.project.items.add(item);
                         }
 
                         Provider.of<ProjectProvider>(context, listen: false).updateProject(widget.project);
