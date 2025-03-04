@@ -47,6 +47,7 @@ class _ProjectDetailsState extends State<ProjectDetails> {
     _showEditDialog(tempItem, null, true);
   }
 
+  // Updated _showEditDialog function in lib/widgets/project_details.dart
   void _showEditDialog(ProjectItem item, [int? index, bool isNewItem = false]) {
     final descriptionController = TextEditingController(text: item.description);
     final quantityController = TextEditingController(
@@ -58,263 +59,190 @@ class _ProjectDetailsState extends State<ProjectDetails> {
     );
     String errorText = '';
 
-    // Determine dialog title based on whether we're creating or editing
-    final title = isNewItem ? 'Neue Position hinzufügen' : 'Position bearbeiten';
+    // Use a full-screen dialog with a CupertinoPageScaffold
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) {
+            return CupertinoPageScaffold(
+              navigationBar: CupertinoNavigationBar(
+                middle: Text(isNewItem ? 'Neue Position' : 'Position bearbeiten'),
+                leading: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Text('Abbrechen'),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                trailing: CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Text('Speichern'),
+                  onPressed: () {
+                    if (item.description.isEmpty) {
+                      setState(() {
+                        errorText = 'Bitte geben Sie einen Titel ein';
+                      });
+                      return;
+                    }
 
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return Container(
-            color: CupertinoColors.systemBackground,
-            height: MediaQuery.of(context).size.height * 0.8, // Make it larger to accommodate keyboard
-            padding: const EdgeInsets.all(16),
-            child: SafeArea(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header section with title and close/save buttons
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: CupertinoColors.systemGrey5,
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: Text(
-                            'Abbrechen',
-                            style: TextStyle(
-                              color: CupertinoColors.systemRed,
-                              fontSize: 14,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          child: Text(
-                            'Speichern',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          onPressed: () {
-                            // Validate inputs
-                            if (item.description.isEmpty) {
-                              setState(() {
-                                errorText = 'Bitte geben Sie eine Beschreibung ein';
-                              });
-                              return;
-                            }
+                    // Add the item to the project only if it's new
+                    if (isNewItem) {
+                      widget.project.items.add(item);
+                    }
 
-                            // Add the item to the project only if it's new
-                            if (isNewItem) {
-                              widget.project.items.add(item);
-                            }
-
-                            Provider.of<ProjectProvider>(context, listen: false).updateProject(widget.project);
-                            Navigator.pop(context);
-                            this.setState(() {}); // Refresh the UI
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Error text if validation fails
-                  if (errorText.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: CupertinoColors.systemRed.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              CupertinoIcons.exclamationmark_triangle,
-                              color: CupertinoColors.systemRed,
-                              size: 16,
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                errorText,
-                                style: TextStyle(
-                                  color: CupertinoColors.systemRed,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  // Scrollable content area
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 16.0, bottom: 32.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Description Field
-                            _buildFormLabel('Beschreibung'),
-                            _buildFormField(
-                              controller: descriptionController,
-                              placeholder: 'Beschreibung eingeben',
-                              isMultiline: true,
-                              onChanged: (value) => item.description = value,
-                            ),
-                            SizedBox(height: 24),
-
-                            // Quantity and Unit Row
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Quantity Column
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildFormLabel('Anzahl'),
-                                      _buildFormField(
-                                        controller: quantityController,
-                                        placeholder: '0',
-                                        keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                        textAlign: TextAlign.center,
-                                        onChanged: (value) {
-                                          try {
-                                            // Convert comma to dot for decimal parsing
-                                            final parsableValue = value.replaceAll(',', '.');
-                                            item.quantity = double.parse(parsableValue);
-                                          } catch (_) {
-                                            item.quantity = 0;
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(width: 16),
-                                // Unit Column
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildFormLabel('Einheit'),
-                                      _buildFormField(
-                                        controller: unitController,
-                                        placeholder: 'z.B. Stück, m², h',
-                                        textAlign: TextAlign.center,
-                                        onChanged: (value) => item.unit = value,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 24),
-
-                            // Price Per Unit Field
-                            _buildFormLabel('Preis pro Einheit (€)'),
-                            _buildFormField(
-                              controller: priceController,
-                              placeholder: '0,00',
-                              keyboardType: TextInputType.numberWithOptions(decimal: true),
-                              textAlign: TextAlign.center,
-                              suffix: const Padding(
-                                padding: EdgeInsets.only(right: 12.0),
-                                child: Text('€'),
-                              ),
-                              onChanged: (value) {
-                                try {
-                                  // Convert comma to dot for decimal parsing
-                                  final parsableValue = value.replaceAll(',', '.');
-                                  item.pricePerUnit = double.parse(parsableValue);
-                                } catch (_) {
-                                  item.pricePerUnit = 0;
-                                }
-                              },
-                            ),
-                            SizedBox(height: 24),
-
-                            // Total Price Preview (read-only)
-                            _buildFormLabel('Gesamtpreis (Vorschau)'),
-                            Container(
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: CupertinoColors.systemGreen.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${(item.quantity * item.pricePerUnit).toStringAsFixed(2).replaceAll('.', ',')} €',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: CupertinoColors.systemGreen,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                    Provider.of<ProjectProvider>(context, listen: false).updateProject(widget.project);
+                    Navigator.pop(context);
+                    this.setState(() {}); // Refresh the UI
+                  },
+                ),
               ),
-            ),
-          );
-        },
+              child: SafeArea(
+                bottom: true,
+                child: Column(
+                  children: [
+                    if (errorText.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                CupertinoIcons.exclamationmark_triangle,
+                                color: CupertinoColors.systemRed,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  errorText,
+                                  style: const TextStyle(
+                                    color: CupertinoColors.systemRed,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.all(16.0),
+                        children: [
+                          // Title field
+                          _buildFormLabel('Titel'),
+                          _buildFormField(
+                            controller: descriptionController,
+                            placeholder: 'Titel eingeben',
+                            isMultiline: false,
+                            onChanged: (value) => item.description = value,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Quantity and Unit Row
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Quantity Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFormLabel('Anzahl'),
+                                    _buildFormField(
+                                      controller: quantityController,
+                                      placeholder: '0',
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      textAlign: TextAlign.center,
+                                      onChanged: (value) {
+                                        try {
+                                          final parsableValue = value.replaceAll(',', '.');
+                                          item.quantity = double.parse(parsableValue);
+                                        } catch (_) {
+                                          item.quantity = 0;
+                                        }
+                                      },
+                                      textInputAction: TextInputAction.next,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Unit Column
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildFormLabel('Einheit'),
+                                    _buildFormField(
+                                      controller: unitController,
+                                      placeholder: 'z.B. Stück, m², h',
+                                      textAlign: TextAlign.center,
+                                      onChanged: (value) => item.unit = value,
+                                      textInputAction: TextInputAction.next,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Price Per Unit Field
+                          _buildFormLabel('Preis pro Einheit (€)'),
+                          _buildFormField(
+                            controller: priceController,
+                            placeholder: '0,00',
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlign: TextAlign.center,
+                            suffix: const Padding(
+                              padding: EdgeInsets.only(right: 12.0),
+                              child: Text('€'),
+                            ),
+                            onChanged: (value) {
+                              try {
+                                final parsableValue = value.replaceAll(',', '.');
+                                item.pricePerUnit = double.parse(parsableValue);
+                              } catch (_) {
+                                item.pricePerUnit = 0;
+                              }
+                            },
+                            textInputAction: TextInputAction.done,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  // Helper method to build consistent form labels
+// Helper to build form labels
   Widget _buildFormLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: 4.0, left: 4.0),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
           color: CupertinoColors.systemGrey,
         ),
       ),
     );
   }
 
-  // Helper method to build consistent form fields
+// Helper to build form fields
   Widget _buildFormField({
     required TextEditingController controller,
     required String placeholder,
@@ -323,40 +251,27 @@ class _ProjectDetailsState extends State<ProjectDetails> {
     TextAlign textAlign = TextAlign.start,
     Widget? suffix,
     required void Function(String) onChanged,
+    TextInputAction? textInputAction,
   }) {
-    return Container(
+    return CupertinoTextField(
+      controller: controller,
+      placeholder: placeholder,
+      keyboardType: keyboardType,
+      textAlign: textAlign,
+      suffix: suffix,
+      textInputAction: textInputAction,
+      maxLines: isMultiline ? 3 : 1,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemBackground,
-        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: CupertinoColors.systemGrey5,
-          width: 1.0,
+          color: CupertinoColors.systemGrey4,
+          width: 0.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: CupertinoColors.systemGrey6,
-            offset: Offset(0, 1),
-            blurRadius: 2,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: CupertinoTextField(
-        controller: controller,
-        placeholder: placeholder,
-        keyboardType: keyboardType,
-        textAlign: textAlign,
-        suffix: suffix,
-        maxLines: isMultiline ? 3 : 1,
-        minLines: isMultiline ? 2 : 1,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          // Remove default border
-          border: null,
-        ),
-        onChanged: onChanged,
-        style: TextStyle(
-          fontSize: 16,
-        ),
+      onChanged: onChanged,
+      style: const TextStyle(
+        fontSize: 16,
       ),
     );
   }
@@ -398,6 +313,7 @@ class _ProjectDetailsState extends State<ProjectDetails> {
     );
   }
 
+  // Updated _buildDescriptionSection() in lib/widgets/project_details.dart
   Widget _buildDescriptionSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,10 +352,22 @@ class _ProjectDetailsState extends State<ProjectDetails> {
               ),
               borderRadius: BorderRadius.circular(12),
             ),
-            onChanged: (value) {
-              widget.project.description = value;
+            textInputAction: TextInputAction.done, // Add this to enable Done button
+            onEditingComplete: () {
+              // This closes the keyboard when Done is pressed
+              FocusScope.of(context).unfocus();
+              widget.project.description = _descriptionController.text;
               Provider.of<ProjectProvider>(context, listen: false).updateProject(widget.project);
             },
+            onTapOutside: (_) {
+              // This closes the keyboard when tapping outside the field
+              FocusScope.of(context).unfocus();
+              widget.project.description = _descriptionController.text;
+              Provider.of<ProjectProvider>(context, listen: false).updateProject(widget.project);
+            },
+            style: const TextStyle(
+              height: 1.3, // Adjust line height for better text alignment
+            ),
           ),
         ),
       ],
