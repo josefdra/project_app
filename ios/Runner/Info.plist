@@ -44,4 +44,16 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
 </dict>
+<key>NSUbiquitousContainers</key>
+<dict>
+    <key>iCloud.com.draexl.project-manager</key>
+    <dict>
+        <key>NSUbiquitousContainerIsDocumentScopePublic</key>
+        <true/>
+        <key>NSUbiquitousContainerName</key>
+        <string>ProjektHive</string>
+        <key>NSUbiquitousContainerSupportedFolderLevels</key>
+        <string>Any</string>
+    </dict>
+</dict>
 </plist>

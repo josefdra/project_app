@@ -1,15 +1,58 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/project.dart';
+import '../services/cloud_sync_service.dart';
 
 class ProjectProvider extends ChangeNotifier {
   final Box<Project> _projectsBox = Hive.box<Project>('projects');
   final Box<Project> _archivedProjectsBox = Hive.box<Project>('archived_projects');
   String _searchQuery = '';
 
+  // Reference to the cloud sync service
+  final CloudSyncService _cloudSyncService = CloudSyncService();
+
+  // Sync status stream for the UI
+  Stream<SyncStatus> get syncStatusStream => _cloudSyncService.syncStatusStream;
+
   // Cache the projects to avoid rebuilding during navigation
   List<Project>? _cachedProjects;
   List<Project>? _cachedArchivedProjects;
+
+  // Sync in progress flag
+  bool _syncInProgress = false;
+  bool get syncInProgress => _syncInProgress;
+
+  // Constructor with initialization
+  ProjectProvider() {
+    _initSyncService();
+  }
+
+  // Initialize the sync service
+  Future<void> _initSyncService() async {
+    try {
+      _syncInProgress = true;
+      notifyListeners();
+
+      await _cloudSyncService.initialize();
+
+      // Listen for sync status changes
+      _cloudSyncService.syncStatusStream.listen((status) {
+        _syncInProgress = status.status == SyncStatusType.syncing;
+        // Refresh data after sync completes
+        if (status.status == SyncStatusType.synced) {
+          _refreshCache();
+          notifyListeners();
+        }
+      });
+
+      _syncInProgress = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error initializing sync service: $e');
+      _syncInProgress = false;
+      notifyListeners();
+    }
+  }
 
   // Getter for projects with lazy loading pattern
   List<Project> get projects {
@@ -59,6 +102,24 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Trigger cloud synchronization
+  Future<void> synchronize() async {
+    try {
+      _syncInProgress = true;
+      notifyListeners();
+
+      await _cloudSyncService.synchronize();
+
+      _syncInProgress = false;
+      _refreshCache();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error during synchronization: $e');
+      _syncInProgress = false;
+      notifyListeners();
+    }
+  }
+
   void setSearchQuery(String query) {
     _searchQuery = query;
     notifyListeners();
@@ -93,6 +154,9 @@ class ProjectProvider extends ChangeNotifier {
     await _projectsBox.add(project);
     _cachedProjects = null; // Invalidate cache
     notifyListeners();
+
+    // Trigger sync after adding a project
+    synchronize();
   }
 
   Future<void> updateProject(Project project) async {
@@ -107,6 +171,9 @@ class ProjectProvider extends ChangeNotifier {
         await _projectsBox.putAt(activeIndex, project);
         _cachedProjects = null; // Invalidate cache
         notifyListeners();
+
+        // Trigger sync after update
+        synchronize();
         return;
       }
 
@@ -118,6 +185,9 @@ class ProjectProvider extends ChangeNotifier {
         await _archivedProjectsBox.putAt(archivedIndex, project);
         _cachedArchivedProjects = null; // Invalidate cache
         notifyListeners();
+
+        // Trigger sync after update
+        synchronize();
         return;
       }
 
@@ -137,6 +207,9 @@ class ProjectProvider extends ChangeNotifier {
           await _projectsBox.deleteAt(i);
           _cachedProjects = null;
           notifyListeners();
+
+          // Trigger sync after deletion
+          synchronize();
           return;
         }
       }
@@ -148,6 +221,9 @@ class ProjectProvider extends ChangeNotifier {
           await _archivedProjectsBox.deleteAt(i);
           _cachedArchivedProjects = null;
           notifyListeners();
+
+          // Trigger sync after deletion
+          synchronize();
           return;
         }
       }
@@ -174,6 +250,9 @@ class ProjectProvider extends ChangeNotifier {
         _cachedArchivedProjects = null;
 
         notifyListeners();
+
+        // Trigger sync after archiving
+        synchronize();
         return;
       }
 
@@ -193,6 +272,9 @@ class ProjectProvider extends ChangeNotifier {
         _cachedArchivedProjects = null;
 
         notifyListeners();
+
+        // Trigger sync after unarchiving
+        synchronize();
         return;
       }
 
