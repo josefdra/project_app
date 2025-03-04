@@ -23,6 +23,9 @@ class Project extends HiveObject {
   @HiveField(5)
   DateTime lastEdited;
 
+  @HiveField(6)
+  String description;
+
   Project({
     String? id,
     required this.name,
@@ -30,12 +33,14 @@ class Project extends HiveObject {
     List<ProjectItem>? items,
     List<String>? images,
     DateTime? lastEdited,
+    String? description,
   }) :
         id = id ?? const Uuid().v4(),
         date = date ?? DateTime.now(),
         items = items ?? [],
         images = images ?? [],
-        lastEdited = lastEdited ?? DateTime.now();
+        lastEdited = lastEdited ?? DateTime.now(),
+        description = description ?? '';
 
   double get totalPrice {
     return items.fold(0, (sum, item) => sum + item.totalPrice);

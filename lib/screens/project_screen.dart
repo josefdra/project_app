@@ -149,9 +149,11 @@ class _ProjectScreenState extends State<ProjectScreen> {
     }
   }
 
-  // Simple action message dialog
   void _showActionMessage(BuildContext context, String message) {
     if (!mounted || !_isActive) return;
+
+    // Create a local reference to track if we're still valid
+    bool isContextValid = true;
 
     showCupertinoDialog(
       context: context,
@@ -159,8 +161,9 @@ class _ProjectScreenState extends State<ProjectScreen> {
       builder: (dialogContext) {
         // Auto-dismiss after 2 seconds
         Future.delayed(const Duration(seconds: 2), () {
-          if (Navigator.canPop(dialogContext)) {
-            Navigator.of(dialogContext).pop();
+          // Check if the dialog context is still valid before popping
+          if (isContextValid && Navigator.of(dialogContext, rootNavigator: true).canPop()) {
+            Navigator.of(dialogContext, rootNavigator: true).pop();
           }
         });
 
@@ -168,7 +171,10 @@ class _ProjectScreenState extends State<ProjectScreen> {
           content: Text(message),
         );
       },
-    );
+    ).then((_) {
+      // Mark as no longer valid after dialog is closed
+      isContextValid = false;
+    });
   }
 
   // Show action sheet with proper state checking

@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
       ],
       child: CupertinoApp(
         title: 'Projekt App',
+        debugShowCheckedModeBanner: false,
         theme: const CupertinoThemeData(
           brightness: Brightness.light,
           primaryColor: AppColors.primaryColor,

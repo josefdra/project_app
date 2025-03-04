@@ -23,13 +23,14 @@ class ProjectAdapter extends TypeAdapter<Project> {
       items: (fields[3] as List?)?.cast<ProjectItem>(),
       images: (fields[4] as List?)?.cast<String>(),
       lastEdited: fields[5] as DateTime?,
+      description: fields[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Project obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class ProjectAdapter extends TypeAdapter<Project> {
       ..writeByte(4)
       ..write(obj.images)
       ..writeByte(5)
-      ..write(obj.lastEdited);
+      ..write(obj.lastEdited)
+      ..writeByte(6)
+      ..write(obj.description);
   }
 
   @override
@@ -50,9 +53,9 @@ class ProjectAdapter extends TypeAdapter<Project> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is ProjectAdapter &&
-              runtimeType == other.runtimeType &&
-              typeId == other.typeId;
+      other is ProjectAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
 
 class ProjectItemAdapter extends TypeAdapter<ProjectItem> {
@@ -93,7 +96,7 @@ class ProjectItemAdapter extends TypeAdapter<ProjectItem> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-          other is ProjectItemAdapter &&
-              runtimeType == other.runtimeType &&
-              typeId == other.typeId;
+      other is ProjectItemAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
 }
