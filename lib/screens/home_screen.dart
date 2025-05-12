@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/project.dart';
 import '../providers/project_provider.dart';
 import '../widgets/project_grid.dart';
+import '../widgets/cloud_sync_indicator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Projekte'),
+        leading: const CloudSyncIndicator(), // Add cloud sync indicator here
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

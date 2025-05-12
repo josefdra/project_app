@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../widgets/project_grid.dart';
 import '../providers/project_provider.dart';
+import '../widgets/cloud_sync_indicator.dart';
 
 class ArchiveScreen extends StatefulWidget {
   const ArchiveScreen({super.key});
@@ -35,14 +36,20 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Archiv'),
-        // Add a back button that safely handles navigation
-        leading: CupertinoNavigationBarBackButton(
-          onPressed: () {
-            // Use post-frame callback for safe navigation
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.of(context).pop();
-            });
-          },
+        // Add cloud sync indicator and back button
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoNavigationBarBackButton(
+              onPressed: () {
+                // Use post-frame callback for safe navigation
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  Navigator.of(context).pop();
+                });
+              },
+            ),
+            const CloudSyncIndicator(),
+          ],
         ),
       ),
       child: SafeArea(
