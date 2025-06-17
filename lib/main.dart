@@ -1,23 +1,18 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:provider/provider.dart';
-import 'models/project.dart';
-import 'providers/project_provider.dart';
-import 'screens/home_screen.dart';
-import 'screens/archive_screen.dart';
-import 'screens/project_screen.dart';
-import 'theme/app_theme.dart';
+import 'package:project_hive_backend/api/project_models/project.dart';
+import 'package:project_hive_backend/local_storage/local_storage.dart';
+import 'package:project_hive_backend/repository/repository.dart';
+import 'package:project_hive_backend/sync/sync.dart';
+import 'package:projekt_hive/screens/home/view/home_screen.dart';
+import 'package:projekt_hive/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Hive
   await Hive.initFlutter();
-
-  // Register adapters
-  Hive.registerAdapter(ProjectAdapter());
-  Hive.registerAdapter(ProjectItemAdapter());
 
   // Open boxes
   await Hive.openBox<Project>('projects');
@@ -31,10 +26,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ProjectProvider()),
-      ],
+    return RepositoryProvider(
+      create: (_) => ProjectRepository(
+        projectApi: ProjectLocalStorage(),
+        projectSyncService: ProjectSyncService(),
+      ),
+      dispose: (repository) => repository.dispose(),
+      lazy: false,
       child: CupertinoApp(
         title: 'Projekt App',
         debugShowCheckedModeBanner: false,
@@ -44,31 +42,7 @@ class MyApp extends StatelessWidget {
           scaffoldBackgroundColor: CupertinoColors.systemGroupedBackground,
           barBackgroundColor: CupertinoColors.systemBackground,
         ),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('de'),
-          Locale('en'),
-        ],
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const HomeScreen(),
-          '/archive': (context) => const ArchiveScreen(),
-        },
-        onGenerateRoute: (settings) {
-          if (settings.name == '/project') {
-            final args = settings.arguments as Map<String, dynamic>;
-            return CupertinoPageRoute(
-              builder: (context) => ProjectScreen(
-                projectId: args['projectId'],
-              ),
-            );
-          }
-          return null;
-        },
+        home: HomeScreen(),
       ),
     );
   }

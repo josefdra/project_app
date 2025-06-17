@@ -1,18 +1,51 @@
 import 'package:flutter/cupertino.dart';
+import 'package:project_hive_backend/api/project_models/project.dart';
 import 'package:provider/provider.dart';
-import '../models/project.dart';
-import '../providers/project_provider.dart';
 
-class ProjectDetails extends StatefulWidget {
-  final Project project;
-
+class ProjectDetails extends StatelessWidget {
   const ProjectDetails({
     super.key,
     required this.project,
   });
 
+  final Project project;
+
   @override
-  State<ProjectDetails> createState() => _ProjectDetailsState();
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDateRow(context),
+          const SizedBox(height: 24),
+          _buildDescriptionSection(),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Positionen',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _addItem,
+                child: const Icon(CupertinoIcons.add_circled),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _buildItemsList(context),
+          const SizedBox(height: 24),
+          _buildTotalPrice(context),
+        ],
+      ),
+    );
+  }
 }
 
 class _ProjectDetailsState extends State<ProjectDetails> {
@@ -276,42 +309,7 @@ class _ProjectDetailsState extends State<ProjectDetails> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildDateRow(context),
-          const SizedBox(height: 24),
-          _buildDescriptionSection(),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Positionen',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: _addItem,
-                child: const Icon(CupertinoIcons.add_circled),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildItemsList(context),
-          const SizedBox(height: 24),
-          _buildTotalPrice(context),
-        ],
-      ),
-    );
-  }
+  
 
   // Updated _buildDescriptionSection() in lib/widgets/project_details.dart
   Widget _buildDescriptionSection() {

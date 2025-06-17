@@ -1,16 +1,27 @@
 import 'package:hive/hive.dart';
+import 'package:project_hive_backend/general/general.dart';
 import 'package:uuid/uuid.dart';
 
 part 'project.g.dart';
 
+mixin ProjectGettable implements Gettable {
+  @override
+  DateTime get date;
+  
+  @override
+  String get name;
+}
+
 @HiveType(typeId: 0)
-class Project extends HiveObject {
+class Project extends HiveObject with ProjectGettable {
   @HiveField(0)
   final String id;
 
+  @override
   @HiveField(1)
   String name;
 
+  @override
   @HiveField(2)
   DateTime date;
 

@@ -23,7 +23,7 @@ class CustomSearchBar extends StatelessWidget {
           ),
           filled: true,
           fillColor: Theme.of(context).brightness == Brightness.light
-              ? Colors.white.withOpacity(0.9)
+              ? Colors.white.withAlpha(230)
               : Colors.grey[800],
           contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
         ),

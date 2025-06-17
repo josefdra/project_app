@@ -1,16 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:project_hive_backend/api/project_models/project.dart';
+import 'package:project_hive_backend/repository/project_repository.dart';
 import 'dart:convert';
-import '../models/project.dart';
-import '../providers/project_provider.dart';
 import 'package:provider/provider.dart';
 
 class ProjectImages extends StatelessWidget {
   final Project project;
+  final bool active;
 
   const ProjectImages({
     super.key,
     required this.project,
+    required this.active,
   });
 
   @override
@@ -34,11 +36,8 @@ class ProjectImages extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  const Icon(
-                      CupertinoIcons.photo,
-                      size: 48,
-                      color: CupertinoColors.systemGrey
-                  ),
+                  const Icon(CupertinoIcons.photo,
+                      size: 48, color: CupertinoColors.systemGrey),
                   const SizedBox(height: 12),
                   const Text(
                     'Keine Fotos vorhanden',
@@ -107,9 +106,10 @@ class ProjectImages extends StatelessWidget {
           ),
           CupertinoDialogAction(
             onPressed: () {
-              final provider = Provider.of<ProjectProvider>(context, listen: false);
               project.images.removeAt(index);
-              provider.updateProject(project);
+              context
+                  .read<ProjectRepository>()
+                  .updateProject(project: project, active: active);
               Navigator.pop(context);
             },
             isDefaultAction: true,
@@ -122,14 +122,13 @@ class ProjectImages extends StatelessWidget {
 
   Future<void> _pickImage(BuildContext context) async {
     final picker = ImagePicker();
-    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
 
     try {
       final image = await picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1200, // Optimize image size
+        maxWidth: 1200,
         maxHeight: 1200,
-        imageQuality: 85, // Reduce quality for smaller file sizes
+        imageQuality: 85,
       );
 
       if (image != null) {
@@ -137,22 +136,28 @@ class ProjectImages extends StatelessWidget {
         final base64Image = base64Encode(bytes);
 
         project.images.add(base64Image);
-        await projectProvider.updateProject(project);
+        if (context.mounted) {
+          await context
+              .read<ProjectRepository>()
+              .updateProject(project: project, active: active);
+        }
       }
     } catch (e) {
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text('Fehler'),
-          content: Text('Fehler beim Laden des Bildes: ${e.toString()}'),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      if (context.mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Fehler'),
+            content: Text('Fehler beim Laden des Bildes: ${e.toString()}'),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
     }
   }
 }
@@ -196,9 +201,7 @@ class _ImageTile extends StatelessWidget {
                     color: CupertinoColors.systemGrey6,
                     child: const Center(
                       child: Icon(CupertinoIcons.photo_fill_on_rectangle_fill,
-                          size: 40,
-                          color: CupertinoColors.systemGrey2
-                      ),
+                          size: 40, color: CupertinoColors.systemGrey2),
                     ),
                   );
                 },
@@ -211,14 +214,15 @@ class _ImageTile extends StatelessWidget {
           right: 4,
           child: Container(
             decoration: BoxDecoration(
-              color: CupertinoColors.black.withOpacity(0.5),
+              color: CupertinoColors.black.withAlpha(127),
               shape: BoxShape.circle,
             ),
             child: CupertinoButton(
               padding: EdgeInsets.zero,
               minSize: 30,
               onPressed: onDelete,
-              child: const Icon(CupertinoIcons.delete, size: 20, color: CupertinoColors.white),
+              child: const Icon(CupertinoIcons.delete,
+                  size: 20, color: CupertinoColors.white),
             ),
           ),
         ),
@@ -241,12 +245,14 @@ class _ImageTile extends StatelessWidget {
                   children: [
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      child: const Icon(CupertinoIcons.xmark, color: CupertinoColors.white),
+                      child: const Icon(CupertinoIcons.xmark,
+                          color: CupertinoColors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
-                      child: const Icon(CupertinoIcons.trash, color: CupertinoColors.destructiveRed),
+                      child: const Icon(CupertinoIcons.trash,
+                          color: CupertinoColors.destructiveRed),
                       onPressed: () {
                         Navigator.pop(context);
                         onDelete();
@@ -263,9 +269,7 @@ class _ImageTile extends StatelessWidget {
                     errorBuilder: (context, error, stackTrace) {
                       return const Center(
                         child: Icon(CupertinoIcons.photo,
-                            size: 100,
-                            color: CupertinoColors.systemGrey
-                        ),
+                            size: 100, color: CupertinoColors.systemGrey),
                       );
                     },
                   ),

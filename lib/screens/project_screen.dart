@@ -1,21 +1,26 @@
 import 'package:flutter/cupertino.dart';
+import 'package:project_hive_backend/api/project_models/project.dart';
 import 'package:provider/provider.dart';
-import '../models/project.dart';
-import '../providers/project_provider.dart';
-import '../widgets/project_details.dart';
-import '../widgets/project_images.dart';
-import '../services/pdf_service.dart';
 
-class ProjectScreen extends StatefulWidget {
-  final String projectId;
-
+class ProjectScreen extends StatelessWidget {
   const ProjectScreen({
     super.key,
-    required this.projectId,
+    required this.project,
   });
 
-  @override
-  State<ProjectScreen> createState() => _ProjectScreenState();
+  final Project project;
+
+  static Route<void> route({required Project project}) {
+    return CupertinoPageRoute(
+      fullscreenDialog: true,
+      builder: (context) => BlocProvider(
+        create: (context) => SettingsBloc(
+          authenticationRepository: context.read<AuthenticationRepository>(),
+        )..add(const SettingsSubscriptionRequested()),
+        child: SettingsPage(onApiKeyChanged: onApiKeyChanged),
+      ),
+    );
+  }
 }
 
 class _ProjectScreenState extends State<ProjectScreen> {
@@ -68,7 +73,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
           );
         }
 
-        final isArchived = provider.archivedProjects.any((p) => p.id == widget.projectId);
+        final isArchived =
+            provider.archivedProjects.any((p) => p.id == widget.projectId);
 
         return CupertinoPageScaffold(
           navigationBar: CupertinoNavigationBar(
@@ -85,17 +91,10 @@ class _ProjectScreenState extends State<ProjectScreen> {
               children: [
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  child: const Icon(CupertinoIcons.doc_text),
-                  onPressed: () {
-                    if (mounted && _isActive) {
-                      PDFService.generatePDF(project);
-                    }
-                  },
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
                   child: Icon(
-                    isArchived ? CupertinoIcons.tray_arrow_up : CupertinoIcons.archivebox,
+                    isArchived
+                        ? CupertinoIcons.tray_arrow_up
+                        : CupertinoIcons.archivebox,
                   ),
                   onPressed: () {
                     if (mounted && _isActive) {
@@ -131,7 +130,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
   }
 
   // Handle archive toggle with proper state checking
-  Future<void> _toggleArchiveStatus(ProjectProvider provider, bool isArchived) async {
+  Future<void> _toggleArchiveStatus(
+      ProjectProvider provider, bool isArchived) async {
     try {
       await provider.toggleArchiveStatus(widget.projectId);
       if (mounted && _isActive) {
@@ -139,8 +139,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
             context,
             isArchived
                 ? 'Projekt wurde wiederhergestellt'
-                : 'Projekt wurde archiviert'
-        );
+                : 'Projekt wurde archiviert');
       }
     } catch (e) {
       if (mounted && _isActive) {
@@ -162,7 +161,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
         // Auto-dismiss after 2 seconds
         Future.delayed(const Duration(seconds: 2), () {
           // Check if the dialog context is still valid before popping
-          if (isContextValid && Navigator.of(dialogContext, rootNavigator: true).canPop()) {
+          if (isContextValid &&
+              Navigator.of(dialogContext, rootNavigator: true).canPop()) {
             Navigator.of(dialogContext, rootNavigator: true).pop();
           }
         });
@@ -178,7 +178,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
   }
 
   // Show action sheet with proper state checking
-  void _showActionSheet(BuildContext context, Project project, ProjectProvider provider, bool isArchived) {
+  void _showActionSheet(BuildContext context, Project project,
+      ProjectProvider provider, bool isArchived) {
     if (!mounted || !_isActive) return;
 
     showCupertinoModalPopup<void>(
@@ -194,15 +195,6 @@ class _ProjectScreenState extends State<ProjectScreen> {
               }
             },
             child: const Text('Umbenennen'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.pop(actionContext);
-              if (mounted && _isActive) {
-                PDFService.generatePDF(project);
-              }
-            },
-            child: const Text('PDF erstellen'),
           ),
           CupertinoActionSheetAction(
             isDestructiveAction: true,
@@ -235,8 +227,7 @@ class _ProjectScreenState extends State<ProjectScreen> {
         title: const Text('Projekt löschen'),
         content: const Text(
             'Sind Sie sicher, dass Sie dieses Projekt löschen möchten? '
-                'Diese Aktion kann nicht rückgängig gemacht werden.'
-        ),
+            'Diese Aktion kann nicht rückgängig gemacht werden.'),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(dialogContext),
@@ -268,7 +259,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
   }
 
   // Show rename dialog with proper state checking
-  void _showRenameDialog(BuildContext context, String currentName, ProjectProvider provider) {
+  void _showRenameDialog(
+      BuildContext context, String currentName, ProjectProvider provider) {
     if (!mounted || !_isActive) return;
 
     final controller = TextEditingController(text: currentName);
@@ -320,7 +312,8 @@ class _ProjectScreenState extends State<ProjectScreen> {
                         project.name = newName;
                         provider.updateProject(project).then((_) {
                           if (mounted && _isActive) {
-                            _showActionMessage(context, 'Projekt wurde umbenannt');
+                            _showActionMessage(
+                                context, 'Projekt wurde umbenannt');
                           }
                         });
                       }

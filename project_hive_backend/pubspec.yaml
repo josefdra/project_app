@@ -1,0 +1,20 @@
+name: project_hive_backend
+description: Das Backend für eine iOS App zur Verwaltung von Projekten, Artikeln und Bildern
+publish_to: 'none'
+version: 1.0.1+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  uuid: ^4.2.1
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  build_runner: ^2.4.8
+  hive_generator: ^2.0.1

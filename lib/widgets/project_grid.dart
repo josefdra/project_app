@@ -1,191 +1,166 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:project_hive_backend/api/project_models/project.dart';
+import 'package:project_hive_backend/repository/project_repository.dart';
+import 'package:projekt_hive/screens/project_screen.dart';
 import 'package:provider/provider.dart';
-import '../providers/project_provider.dart';
-import '../models/project.dart';
 
 class ProjectGrid extends StatelessWidget {
-  final bool archived;
+  final bool active;
+  final Iterable<Project> projects;
 
   const ProjectGrid({
     super.key,
-    required this.archived,
+    required this.active,
+    required this.projects,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Determine if we're on a large screen device
     final isLargeScreen = MediaQuery.of(context).size.width > 768;
 
-    return Consumer<ProjectProvider>(
-      builder: (context, provider, child) {
-        // Get projects without triggering a rebuild
-        final projects = archived ? provider.archivedProjects : provider.projects;
-
-        if (projects.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  archived ? CupertinoIcons.archivebox : CupertinoIcons.doc_text,
-                  size: 64,
-                  color: CupertinoColors.systemGrey,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  archived ? 'Keine archivierten Projekte' : 'Keine aktiven Projekte',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: CupertinoColors.systemGrey,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (!archived)
-                  CupertinoButton.filled(
-                      onPressed: () => _showNewProjectDialog(context, provider),
-                      child: const Text('Neues Projekt erstellen')
-                  ),
-              ],
+    if (projects.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              active ? CupertinoIcons.doc_text : CupertinoIcons.archivebox,
+              size: 64,
+              color: CupertinoColors.systemGrey,
             ),
-          );
-        }
+            const SizedBox(height: 16),
+            Text(
+              active ? 'Keine aktiven Projekte' : 'Keine archivierten Projekte',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
+                color: CupertinoColors.systemGrey,
+              ),
+            ),
+            const SizedBox(height: 24),
+            if (active)
+              CupertinoButton.filled(
+                  onPressed: () => _showNewProjectDialog(context),
+                  child: const Text('Neues Projekt erstellen')),
+          ],
+        ),
+      );
+    }
 
-        // Use a different grid layout depending on screen size
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isLargeScreen ? 3 : 2,
-            childAspectRatio: isLargeScreen ? 1.15 : 1.0,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-          ),
-          itemCount: projects.length,
-          itemBuilder: (context, index) {
-            final project = projects[index];
-            return ProjectTile(project: project);
-          },
-        );
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: isLargeScreen ? 3 : 2,
+        childAspectRatio: isLargeScreen ? 1.15 : 1.0,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: projects.length,
+      itemBuilder: (context, index) {
+        final project = projects.elementAt(index);
+        return ProjectTile(project: project);
       },
     );
   }
+}
 
-  void _showNewProjectDialog(BuildContext context, ProjectProvider provider) {
-    final TextEditingController nameController = TextEditingController();
-    String errorText = '';
+void _showNewProjectDialog(BuildContext context) {
+  final TextEditingController nameController = TextEditingController();
+  String errorText = '';
 
-    showCupertinoDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return CupertinoAlertDialog(
-            title: const Text('Neues Projekt'),
-            content: Column(
-              children: [
-                const SizedBox(height: 8),
-                CupertinoTextField(
-                  controller: nameController,
-                  placeholder: 'Projektname',
-                  autofocus: true,
-                  onSubmitted: (value) {
-                    if (value.trim().isNotEmpty) {
-                      _createProject(context, provider, value.trim());
-                    } else {
-                      setState(() {
-                        errorText = 'Projektname darf nicht leer sein';
-                      });
-                    }
-                  },
-                ),
-                if (errorText.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      errorText,
-                      style: const TextStyle(
-                        color: CupertinoColors.systemRed,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(context),
-                isDestructiveAction: true,
-                child: const Text('Abbrechen'),
-              ),
-              CupertinoDialogAction(
-                onPressed: () {
-                  final name = nameController.text.trim();
-                  if (name.isNotEmpty) {
-                    _createProject(context, provider, name);
+  showCupertinoDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) {
+        return CupertinoAlertDialog(
+          title: const Text('Neues Projekt'),
+          content: Column(
+            children: [
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: nameController,
+                placeholder: 'Projektname',
+                autofocus: true,
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) {
+                    _createProject(context, value.trim());
                   } else {
                     setState(() {
                       errorText = 'Projektname darf nicht leer sein';
                     });
                   }
                 },
-                child: const Text('Erstellen'),
               ),
+              if (errorText.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    errorText,
+                    style: const TextStyle(
+                      color: CupertinoColors.systemRed,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
             ],
-          );
-        },
-      ),
-    );
-  }
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              isDestructiveAction: true,
+              child: const Text('Abbrechen'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () {
+                final name = nameController.text.trim();
+                if (name.isNotEmpty) {
+                  _createProject(context, name);
+                } else {
+                  setState(() {
+                    errorText = 'Projektname darf nicht leer sein';
+                  });
+                }
+              },
+              child: const Text('Erstellen'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
 
-  void _createProject(BuildContext context, ProjectProvider provider, String name) {
-    try {
-      final newProject = Project(name: name);
-      provider.addProject(newProject);
-
-      // Close dialog
-      Navigator.pop(context);
-
-      // Navigate safely
-      Navigator.pushNamed(
-        context,
-        '/project',
-        arguments: {'projectId': newProject.id},
-      );
-    } catch (e) {
-      debugPrint('Error creating project: $e');
-    }
-  }
+void _createProject(BuildContext context, String name) {
+  final newProject = Project(name: name);
+  context.read<ProjectRepository>().addProject(project: newProject);
+  Navigator.pop(context);
+  Navigator.of(context).push(ProjectScreen.route(project: newProject));
 }
 
 class ProjectTile extends StatelessWidget {
-  final Project project;
-
   const ProjectTile({
     super.key,
     required this.project,
   });
 
+  final Project project;
+
   @override
   Widget build(BuildContext context) {
-    // Get a contrasting color based on the project name for the card accent
     final accentColor = _getAccentColorFromName(project.name);
 
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed: () {
-        Navigator.pushNamed(
-          context,
-          '/project',
-          arguments: {'projectId': project.id},
-        );
-      },
+      onPressed: () =>
+          Navigator.of(context).push(ProjectScreen.route(project: project)),
       child: Container(
         decoration: BoxDecoration(
           color: CupertinoColors.systemBackground,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: accentColor.withOpacity(0.2),
+              color: accentColor.withAlpha(50),
               spreadRadius: 1,
               blurRadius: 8,
               offset: const Offset(0, 2),
@@ -195,7 +170,6 @@ class ProjectTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Top accent color bar
             Container(
               height: 6,
               decoration: BoxDecoration(
@@ -213,7 +187,6 @@ class ProjectTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title section
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -247,18 +220,13 @@ class ProjectTile extends StatelessWidget {
                         ),
                       ],
                     ),
-
-                    // Stats section
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Line separator
                         Divider(
                           color: CupertinoColors.systemGrey.withOpacity(0.2),
                           height: 16,
                         ),
-
-                        // Item count
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -269,7 +237,6 @@ class ProjectTile extends StatelessWidget {
                                 color: CupertinoColors.systemGrey,
                               ),
                             ),
-                            // Photos count
                             if (project.images.isNotEmpty)
                               Row(
                                 children: [
@@ -290,14 +257,12 @@ class ProjectTile extends StatelessWidget {
                               ),
                           ],
                         ),
-
                         const SizedBox(height: 8),
-
-                        // Price section
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: accentColor.withOpacity(0.1),
+                            color: accentColor.withAlpha(25),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -305,8 +270,7 @@ class ProjectTile extends StatelessWidget {
                             children: [
                               Icon(
                                 CupertinoIcons.money_euro,
-                                size:
-                                16,
+                                size: 16,
                                 color: accentColor,
                               ),
                               const SizedBox(width: 4),
@@ -333,7 +297,6 @@ class ProjectTile extends StatelessWidget {
     );
   }
 
-  // Generate a color based on the project name to provide visual variety
   Color _getAccentColorFromName(String name) {
     final colors = [
       CupertinoColors.systemGreen,
@@ -345,7 +308,6 @@ class ProjectTile extends StatelessWidget {
       CupertinoColors.systemTeal,
     ];
 
-    // Simple hash function to determine color index
     int hash = 0;
     for (var i = 0; i < name.length; i++) {
       hash = name.codeUnitAt(i) + ((hash << 5) - hash);
