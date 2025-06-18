@@ -1,9 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:project_hive_backend/api/project_models/project.dart';
-import 'package:project_hive_backend/repository/project_repository.dart';
-import 'package:projekt_hive/screens/project_screen.dart';
-import 'package:provider/provider.dart';
+import 'package:projekt_hive/screens/project/view/project_screen.dart';
 
 class ProjectGrid extends StatelessWidget {
   final bool active;
@@ -19,35 +17,6 @@ class ProjectGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLargeScreen = MediaQuery.of(context).size.width > 768;
 
-    if (projects.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              active ? CupertinoIcons.doc_text : CupertinoIcons.archivebox,
-              size: 64,
-              color: CupertinoColors.systemGrey,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              active ? 'Keine aktiven Projekte' : 'Keine archivierten Projekte',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: CupertinoColors.systemGrey,
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (active)
-              CupertinoButton.filled(
-                  onPressed: () => _showNewProjectDialog(context),
-                  child: const Text('Neues Projekt erstellen')),
-          ],
-        ),
-      );
-    }
-
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -59,92 +28,21 @@ class ProjectGrid extends StatelessWidget {
       itemCount: projects.length,
       itemBuilder: (context, index) {
         final project = projects.elementAt(index);
-        return ProjectTile(project: project);
+        return ProjectTile(project: project, active: active);
       },
     );
   }
-}
-
-void _showNewProjectDialog(BuildContext context) {
-  final TextEditingController nameController = TextEditingController();
-  String errorText = '';
-
-  showCupertinoDialog(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setState) {
-        return CupertinoAlertDialog(
-          title: const Text('Neues Projekt'),
-          content: Column(
-            children: [
-              const SizedBox(height: 8),
-              CupertinoTextField(
-                controller: nameController,
-                placeholder: 'Projektname',
-                autofocus: true,
-                onSubmitted: (value) {
-                  if (value.trim().isNotEmpty) {
-                    _createProject(context, value.trim());
-                  } else {
-                    setState(() {
-                      errorText = 'Projektname darf nicht leer sein';
-                    });
-                  }
-                },
-              ),
-              if (errorText.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    errorText,
-                    style: const TextStyle(
-                      color: CupertinoColors.systemRed,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          actions: [
-            CupertinoDialogAction(
-              onPressed: () => Navigator.pop(context),
-              isDestructiveAction: true,
-              child: const Text('Abbrechen'),
-            ),
-            CupertinoDialogAction(
-              onPressed: () {
-                final name = nameController.text.trim();
-                if (name.isNotEmpty) {
-                  _createProject(context, name);
-                } else {
-                  setState(() {
-                    errorText = 'Projektname darf nicht leer sein';
-                  });
-                }
-              },
-              child: const Text('Erstellen'),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
-
-void _createProject(BuildContext context, String name) {
-  final newProject = Project(name: name);
-  context.read<ProjectRepository>().addProject(project: newProject);
-  Navigator.pop(context);
-  Navigator.of(context).push(ProjectScreen.route(project: newProject));
 }
 
 class ProjectTile extends StatelessWidget {
   const ProjectTile({
     super.key,
     required this.project,
+    required this.active,
   });
 
   final Project project;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -152,8 +50,8 @@ class ProjectTile extends StatelessWidget {
 
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed: () =>
-          Navigator.of(context).push(ProjectScreen.route(project: project)),
+      onPressed: () => Navigator.of(context)
+          .push(ProjectScreen.route(project: project, active: active)),
       child: Container(
         decoration: BoxDecoration(
           color: CupertinoColors.systemBackground,

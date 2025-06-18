@@ -1,34 +1,50 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_hive_backend/api/project_models/project.dart';
-import 'package:project_hive_backend/repository/repository.dart';
 import 'package:projekt_hive/screens/project/view/project_screen.dart';
-import 'package:projekt_hive/widgets/edit_project/bloc/edit_project_bloc.dart';
+import 'package:projekt_hive/widgets/edit_name/bloc/edit_name_bloc.dart';
 
-class EditProjectWidget extends StatelessWidget {
-  const EditProjectWidget({
+class EditNameWidget extends StatelessWidget {
+  const EditNameWidget({
     super.key,
-  });
+    required String initialName,
+  }) : _initialName = initialName;
+
+  final String _initialName;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => EditProjectBloc(context.read<ProjectRepository>()),
-      child: const EditProjectView(),
+      create: (context) => EditNameBloc(_initialName)
+        ..add(const EditNameSubscriptionRequested()),
+      child: BlocListener<EditNameBloc, EditNameState>(
+        listenWhen: (previous, current) =>
+            previous.status != current.status &&
+            (current.status == EditNameStatus.success),
+        listener: (context, state) {
+          Navigator.of(context).pop();
+        },
+        child: const EditNameView(),
+      ),
     );
   }
 }
 
-class EditProjectView extends StatelessWidget {
-  const EditProjectView({super.key});
+class EditNameView extends StatelessWidget {
+  const EditNameView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<EditProjectBloc, EditProjectState>(
+    return BlocBuilder<EditNameBloc, EditNameState>(
       builder: (context, state) {
+        if (state.status == EditNameStatus.loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         return CupertinoAlertDialog(
-          title: const Text('Neues Projekt'),
+          title: const Text('Projekt umbenennen'),
           content: Column(
             children: [
               const SizedBox(height: 8),
@@ -43,20 +59,18 @@ class EditProjectView extends StatelessWidget {
             ),
             CupertinoDialogAction(
               onPressed: () {
-                context
-                    .read<EditProjectBloc>()
-                    .add(const EditProjectValidate());
-                if (state.text.isNotEmpty) {
-                  final p = Project(name: state.text);
-                  context
-                      .read<EditProjectBloc>()
-                      .add(EditProjectCreate(project: p));
+                context.read<EditNameBloc>().add(const EditNameValidation());
+
+                if (state.validationErrors.isEmpty) {
                   Navigator.of(context).pushReplacement(
-                    ProjectScreen.route(project: p, active: true),
+                    ProjectScreen.route(
+                      project: Project(name: state.text),
+                      active: true,
+                    ),
                   );
                 }
               },
-              child: const Text('Erstellen'),
+              child: const Text('Speichern'),
             ),
           ],
         );
@@ -70,7 +84,7 @@ class _TextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<EditProjectBloc>().state;
+    final state = context.watch<EditNameBloc>().state;
     final hintText = 'Projektname';
     final error = state.validationErrors['text'];
 
@@ -80,15 +94,21 @@ class _TextField extends StatelessWidget {
         if (!state.status.isLoadingOrSuccess)
           Padding(
             padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              'Projekt',
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                    color: CupertinoColors.label.resolveFrom(context),
+                  ),
+            ),
           ),
         CupertinoTextField(
           key: const Key('editProjectView_text_textFormField'),
           enabled: !state.status.isLoadingOrSuccess,
           placeholder: hintText,
-          maxLength: 50,
-          maxLines: 1,
+          maxLength: 300,
+          maxLines: 7,
           inputFormatters: [
-            LengthLimitingTextInputFormatter(50),
+            LengthLimitingTextInputFormatter(300),
           ],
           decoration: BoxDecoration(
             border: Border.all(
@@ -99,7 +119,7 @@ class _TextField extends StatelessWidget {
             borderRadius: BorderRadius.circular(8.0),
           ),
           onChanged: (value) {
-            context.read<EditProjectBloc>().add(EditProjectTextChanged(value));
+            context.read<EditNameBloc>().add(EditNameTextChanged(value));
           },
         ),
         if (error != null)

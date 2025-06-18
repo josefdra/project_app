@@ -13,8 +13,7 @@ final class ArchiveState extends Equatable {
   final List<Project> projects;
   final SearchQuery<Project> searchQuery;
 
-  Iterable<Project> get searchQueryedProjects =>
-      searchQuery.applyAll(projects);
+  Iterable<Project> get searchQueryedProjects => searchQuery.applyAll(projects);
 
   ArchiveState copyWith({
     ArchiveStatus? status,
@@ -29,5 +28,5 @@ final class ArchiveState extends Equatable {
   }
 
   @override
-  List<Object> get props => [status, projects];
+  List<Object> get props => [status, projects, searchQuery];
 }

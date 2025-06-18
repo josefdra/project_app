@@ -40,7 +40,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     ArchiveProjectsUpdate event,
     Emitter<ArchiveState> emit,
   ) {
-    emit(state.copyWith(projects: event.projects));
+    emit(state.copyWith(status: ArchiveStatus.success, projects: event.projects));
   }
 
   void _onSearchQueryChanged(

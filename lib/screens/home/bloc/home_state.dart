@@ -29,5 +29,5 @@ final class HomeState extends Equatable {
   }
 
   @override
-  List<Object> get props => [status, projects];
+  List<Object> get props => [status, projects, searchQuery];
 }

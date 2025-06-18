@@ -13,22 +13,43 @@ class HomeScreen extends StatelessWidget {
   static Route<void> route() {
     return CupertinoPageRoute(
       fullscreenDialog: true,
-      builder: (context) => BlocProvider(
-        create: (context) => HomeBloc(
-          projectRepository: context.read<ProjectRepository>(),
-        ),
-        child: const HomeScreen(),
-      ),
+      builder: (context) => const HomeScreen(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          HomeBloc(projectRepository: context.read<ProjectRepository>())
-            ..add(const HomeSubscriptionRequested()),
-      child: const HomeView(),
+      create: (context) => HomeBloc(
+        projectRepository: context.read<ProjectRepository>(),
+      )..add(const HomeSubscriptionRequested()),
+      child: CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          middle: const Text('Projekte'),
+          leading: CloudSyncIndicator(
+            syncService: context.read<ProjectRepository>().syncService,
+          ),
+          trailing: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                child: const Icon(CupertinoIcons.archivebox),
+                onPressed: () => Navigator.of(context).pushReplacement(
+                  ArchiveScreen.route(),
+                ),
+              ),
+              CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  child: const Icon(CupertinoIcons.add),
+                  onPressed: () => showCupertinoDialog<EditProjectWidget>(
+                      context: context,
+                      builder: (context) => const EditProjectWidget())),
+            ],
+          ),
+        ),
+        child: const HomeView(),
+      ),
     );
   }
 }
@@ -50,47 +71,23 @@ class HomeView extends StatelessWidget {
           }
         }
 
-        return CupertinoPageScaffold(
-          navigationBar: CupertinoNavigationBar(
-            middle: const Text('Projekte'),
-            leading: const CloudSyncIndicator(),
-            trailing: Row(
-              children: [
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  child: const Icon(CupertinoIcons.archivebox),
-                  onPressed: () => Navigator.of(context)
-                      .pushReplacement(ArchiveScreen.route()),
+        return SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CupertinoSearchTextField(
+                  placeholder: 'Suchen...',
+                  onChanged: (query) {
+                    context.read<HomeBloc>().add(HomeSearchQueryChanged(query));
+                  },
                 ),
-                CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: const Icon(CupertinoIcons.add),
-                    onPressed: () => showCupertinoDialog<EditProjectWidget>(
-                        context: context,
-                        builder: (context) => const EditProjectWidget())),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: CupertinoSearchTextField(
-                    placeholder: 'Suchen...',
-                    onChanged: (query) {
-                      context
-                          .read<HomeBloc>()
-                          .add(HomeSearchQueryChanged(query));
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: ProjectGrid(
-                      projects: state.searchQueryedProjects, active: true),
-                ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: ProjectGrid(
+                    projects: state.searchQueryedProjects, active: true),
+              ),
+            ],
           ),
         );
       },

@@ -18,6 +18,8 @@ class ProjectRepository {
   final ProjectApi _projectApi;
   final ProjectSyncService _projectSyncService;
 
+  ProjectSyncService get syncService => _projectSyncService;
+
   /// Provides a [Stream] of active projects.
   Stream<List<Project>> get activeProjects => _projectApi.activeProjects;
 

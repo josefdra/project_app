@@ -40,7 +40,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     HomeProjectsUpdate event,
     Emitter<HomeState> emit,
   ) {
-    emit(state.copyWith(projects: event.projects));
+    emit(state.copyWith(status: HomeStatus.success, projects: event.projects));
   }
 
   void _onSearchQueryChanged(

@@ -2,23 +2,20 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:project_hive_backend/api/project_models/project.dart';
+import 'package:project_hive_backend/repository/repository.dart';
 
 part 'edit_project_event.dart';
 part 'edit_project_state.dart';
 
 class EditProjectBloc extends Bloc<EditProjectEvent, EditProjectState> {
-  EditProjectBloc() : super(EditProjectState()) {
-    on<EditProjectSubscriptionRequested>(_onSubscriptionRequested);
+  EditProjectBloc(this.projectRepository) : super(EditProjectState()) {
     on<EditProjectTextChanged>(_onTextChanged);
-    on<EditProjectValidation>(_onValidation);
+    on<EditProjectValidate>(_onValidate);
+    on<EditProjectCreate>(_onCreate);
   }
 
-  void _onSubscriptionRequested(
-    EditProjectSubscriptionRequested event,
-    Emitter<EditProjectState> emit,
-  ) {
-    emit(state.copyWith(status: EditProjectStatus.loading));
-  }
+  ProjectRepository projectRepository;
 
   void _onTextChanged(
     EditProjectTextChanged event,
@@ -40,8 +37,8 @@ class EditProjectBloc extends Bloc<EditProjectEvent, EditProjectState> {
     return errors;
   }
 
-  Future<void> _onValidation(
-    EditProjectValidation event,
+  Future<void> _onValidate(
+    EditProjectValidate event,
     Emitter<EditProjectState> emit,
   ) async {
     final validationErrors = _validateFields();
@@ -53,7 +50,13 @@ class EditProjectBloc extends Bloc<EditProjectEvent, EditProjectState> {
           status: EditProjectStatus.invalid,
         ),
       );
-      return;
     }
+  }
+
+  Future<void> _onCreate(
+    EditProjectCreate event,
+    Emitter<EditProjectState> emit,
+  ) async {
+    projectRepository.addProject(project: event.project);
   }
 }

@@ -7,7 +7,7 @@ part 'project.g.dart';
 mixin ProjectGettable implements Gettable {
   @override
   DateTime get date;
-  
+
   @override
   String get name;
 }
@@ -45,13 +45,32 @@ class Project extends HiveObject with ProjectGettable {
     List<String>? images,
     DateTime? lastEdited,
     String? description,
-  }) :
-        id = id ?? const Uuid().v4(),
+  })  : id = id ?? const Uuid().v4(),
         date = date ?? DateTime.now(),
         items = items ?? [],
         images = images ?? [],
         lastEdited = lastEdited ?? DateTime.now(),
         description = description ?? '';
+
+  Project copyWith({
+    String? id,
+    String? name,
+    DateTime? date,
+    List<ProjectItem>? items,
+    List<String>? images,
+    DateTime? lastEdited,
+    String? description,
+  }) {
+    return Project(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      date: date ?? this.date,
+      items: items ?? this.items,
+      images: images ?? this.images,
+      lastEdited: lastEdited ?? this.lastEdited,
+      description: description ?? this.description,
+    );
+  }
 
   double get totalPrice {
     return items.fold(0, (sum, item) => sum + item.totalPrice);

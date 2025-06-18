@@ -1,15 +1,16 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:project_hive_backend/sync/project_sync.dart';
-import 'package:provider/provider.dart';
 
 class CloudSyncIndicator extends StatelessWidget {
-  const CloudSyncIndicator({super.key});
+  const CloudSyncIndicator({super.key, required this.syncService});
+
+  final ProjectSyncService syncService;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<SyncStatus>(
-      stream: context.read<ProjectSyncService>().syncUpdates,
+      stream: syncService.syncUpdates,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(
@@ -65,7 +66,7 @@ class CloudSyncIndicator extends StatelessWidget {
         actions: [
           CupertinoActionSheetAction(
             onPressed: () {
-              context.read<ProjectSyncService>().sync();
+              syncService.sync();
               Navigator.of(context).pop();
             },
             child: const Text('Jetzt synchronisieren'),

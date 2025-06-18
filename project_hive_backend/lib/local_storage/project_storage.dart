@@ -55,7 +55,7 @@ class ProjectLocalStorage extends ProjectApi {
     activeProjects.add(project);
 
     _activeProjectStreamController.add(activeProjects);
-    _activeProjectsBox.add(project);
+    _activeProjectsBox.put(project.id, project);
   }
 
   @override
@@ -74,7 +74,7 @@ class ProjectLocalStorage extends ProjectApi {
     }
 
     projects[projectIndex] = project;
-    await box.putAt(projectIndex, project);
+    await box.put(project.id, project);
     controller.add(projects);
   }
 
@@ -89,9 +89,9 @@ class ProjectLocalStorage extends ProjectApi {
     }
 
     activeProjects.removeAt(projectIndex);
-    await _activeProjectsBox.deleteAt(projectIndex);
+    await _activeProjectsBox.delete(project.id);
     archivedProjects.add(project);
-    await _archivedProjectsBox.add(project);
+    await _archivedProjectsBox.put(project.id, project);
 
     _activeProjectStreamController.add(activeProjects);
     _archivedProjectStreamController.add(archivedProjects);
@@ -108,9 +108,9 @@ class ProjectLocalStorage extends ProjectApi {
     }
 
     archivedProjects.removeAt(projectIndex);
-    await _archivedProjectsBox.deleteAt(projectIndex);
+    await _archivedProjectsBox.delete(project.id);
     activeProjects.add(project);
-    await _activeProjectsBox.add(project);
+    await _activeProjectsBox.put(project.id, project);
 
     _archivedProjectStreamController.add(archivedProjects);
     _activeProjectStreamController.add(activeProjects);
@@ -132,7 +132,7 @@ class ProjectLocalStorage extends ProjectApi {
     }
 
     projects.removeAt(projectIndex);
-    await box.deleteAt(projectIndex);
+    await box.delete(project.id);
     controller.add(projects);
   }
 

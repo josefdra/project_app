@@ -7,10 +7,6 @@ sealed class EditProjectEvent extends Equatable {
   List<Object> get props => [];
 }
 
-final class EditProjectSubscriptionRequested extends EditProjectEvent {
-  const EditProjectSubscriptionRequested();
-}
-
 final class EditProjectTextChanged extends EditProjectEvent {
   const EditProjectTextChanged(
     this.text, {
@@ -24,6 +20,15 @@ final class EditProjectTextChanged extends EditProjectEvent {
   List<Object> get props => [text];
 }
 
-final class EditProjectValidation extends EditProjectEvent {
-  const EditProjectValidation();
+final class EditProjectValidate extends EditProjectEvent {
+  const EditProjectValidate();
+}
+
+final class EditProjectCreate extends EditProjectEvent {
+  const EditProjectCreate({required this.project});
+
+  final Project project;
+
+  @override
+  List<Object> get props => [project];
 }

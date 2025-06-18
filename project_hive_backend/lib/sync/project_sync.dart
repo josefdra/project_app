@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:project_hive_backend/api/project_models/project.dart';
@@ -28,36 +29,41 @@ class ProjectSyncService {
   final _projectsBoxName = 'projects';
   final _archivedProjectsBoxName = 'archived_projects';
   final _methodChannel = MethodChannel('com.draexl.project_manager/icloud');
-  late final String? _iCloudDocumentsPath;
+  String? _iCloudDocumentsPath;
+  bool iCloudAvailable = false;
 
   /// Initialize the sync service
   Future<void> _init() async {
-    _iCloudDocumentsPath =
-        await _methodChannel.invokeMethod<String>('getICloudDocumentsPath');
+    try {
+      _iCloudDocumentsPath =
+          await _methodChannel.invokeMethod<String>('getICloudDocumentsPath');
 
-    await _createDirs();
-    await sync();
+      if (_iCloudDocumentsPath == null) return;
+
+      iCloudAvailable = true;
+
+      await _createDirs();
+      await sync();
+    } catch (e) {
+      if (kDebugMode) print("no icloud");
+    }
   }
 
   Future<void> _createDirs() async {
-    if (_iCloudDocumentsPath == null) return;
+    if (!iCloudAvailable) return;
 
     final projectsDir = Directory('$_iCloudDocumentsPath/projects');
     final archivedDir = Directory('$_iCloudDocumentsPath/archived_projects');
 
-    if (!await projectsDir.exists()) {
-      await projectsDir.create(recursive: true);
-    }
-
-    if (!await archivedDir.exists()) {
-      await archivedDir.create(recursive: true);
-    }
+    if (!await projectsDir.exists()) await projectsDir.create(recursive: true);
+    if (!await archivedDir.exists()) await archivedDir.create(recursive: true);
   }
 
   // Synchronize data between local and cloud storage
   Future<void> sync() async {
-    if (_iCloudDocumentsPath == null ||
-        await syncUpdates.first == SyncStatus.syncing) {
+    if (await syncUpdates.first == SyncStatus.syncing) return;
+    if (!iCloudAvailable) {
+      _init();
       return;
     }
 
@@ -164,7 +170,8 @@ class ProjectSyncService {
   }
 
   // Merge cloud projects with local box
-  Future<void> _mergeProjects(List<Project> cloudProjects, Box<Project> localBox) async {
+  Future<void> _mergeProjects(
+      List<Project> cloudProjects, Box<Project> localBox) async {
     final localProjectsMap = <String, Project>{};
 
     for (final project in localBox.values) {

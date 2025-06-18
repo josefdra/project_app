@@ -11,8 +11,8 @@ import 'package:projekt_hive/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive
   await Hive.initFlutter();
+  Hive.registerAdapter(ProjectAdapter());
 
   // Open boxes
   await Hive.openBox<Project>('projects');

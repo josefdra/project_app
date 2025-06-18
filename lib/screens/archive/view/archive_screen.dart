@@ -11,12 +11,7 @@ class ArchiveScreen extends StatelessWidget {
   static Route<void> route() {
     return CupertinoPageRoute(
       fullscreenDialog: true,
-      builder: (context) => BlocProvider(
-        create: (context) => ArchiveBloc(
-          projectRepository: context.read<ProjectRepository>(),
-        ),
-        child: const ArchiveScreen(),
-      ),
+      builder: (context) => const ArchiveScreen(),
     );
   }
 
@@ -26,7 +21,23 @@ class ArchiveScreen extends StatelessWidget {
       create: (_) =>
           ArchiveBloc(projectRepository: context.read<ProjectRepository>())
             ..add(const ArchiveSubscriptionRequested()),
-      child: const ArchiveView(),
+      child: CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          middle: const Text('Archiv'),
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CupertinoNavigationBarBackButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              CloudSyncIndicator(
+                syncService: context.read<ProjectRepository>().syncService,
+              ),
+            ],
+          ),
+        ),
+        child: const ArchiveView(),
+      ),
     );
   }
 }
@@ -48,39 +59,25 @@ class ArchiveView extends StatelessWidget {
           }
         }
 
-        return CupertinoPageScaffold(
-          navigationBar: CupertinoNavigationBar(
-            middle: const Text('Archiv'),
-            leading: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CupertinoNavigationBarBackButton(
-                  onPressed: () => Navigator.of(context).pop(),
+        return SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CupertinoSearchTextField(
+                  placeholder: 'Suchen...',
+                  onChanged: (query) {
+                    context
+                        .read<ArchiveBloc>()
+                        .add(ArchiveSearchQueryChanged(query));
+                  },
                 ),
-                const CloudSyncIndicator(),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: CupertinoSearchTextField(
-                    placeholder: 'Suchen...',
-                    onChanged: (query) {
-                      context
-                          .read<ArchiveBloc>()
-                          .add(ArchiveSearchQueryChanged(query));
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: ProjectGrid(
-                      projects: state.searchQueryedProjects, active: true),
-                ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: ProjectGrid(
+                    projects: state.searchQueryedProjects, active: false),
+              ),
+            ],
           ),
         );
       },
