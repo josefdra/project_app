@@ -35,7 +35,7 @@ class HomeScreen extends StatelessWidget {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 child: const Icon(CupertinoIcons.archivebox),
-                onPressed: () => Navigator.of(context).pushReplacement(
+                onPressed: () => Navigator.of(context).push(
                   ArchiveScreen.route(),
                 ),
               ),
@@ -85,7 +85,9 @@ class HomeView extends StatelessWidget {
               ),
               Expanded(
                 child: ProjectGrid(
-                    projects: state.searchQueryedProjects, active: true),
+                  projects: state.searchQueryedProjects,
+                  active: true,
+                ),
               ),
             ],
           ),

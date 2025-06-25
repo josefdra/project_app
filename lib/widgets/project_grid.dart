@@ -108,7 +108,7 @@ class ProjectTile extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _formatDate(project.lastEdited),
+                              _formatDate(project.date),
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: CupertinoColors.systemGrey,

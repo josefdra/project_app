@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:project_hive_backend/sync/project_sync.dart';
 
 class CloudSyncIndicator extends StatelessWidget {
@@ -14,7 +13,7 @@ class CloudSyncIndicator extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(
-            child: CircularProgressIndicator(),
+            child: CupertinoActivityIndicator(),
           );
         }
 
@@ -31,14 +30,14 @@ class CloudSyncIndicator extends StatelessWidget {
 
           case SyncStatus.syncing:
             icon = const Icon(
-              Icons.sync,
+              CupertinoIcons.arrow_2_circlepath,
               color: CupertinoColors.activeBlue,
             );
             break;
 
           case SyncStatus.synced:
             icon = const Icon(
-              Icons.cloud_done,
+              CupertinoIcons.check_mark_circled,
               color: CupertinoColors.activeGreen,
             );
             break;

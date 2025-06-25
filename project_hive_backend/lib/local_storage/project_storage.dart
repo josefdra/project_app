@@ -9,7 +9,7 @@ import 'package:rxdart/subjects.dart';
 class ProjectLocalStorage extends ProjectApi {
   /// {@macro project_local_storage}
   ProjectLocalStorage() {
-    _refreshCache();
+    _init();
   }
 
   final Box<Project> _activeProjectsBox = Hive.box<Project>('projects');
@@ -32,7 +32,7 @@ class ProjectLocalStorage extends ProjectApi {
   late final Stream<List<Project>> _archivedProjects =
       _archivedProjectStreamController.stream;
 
-  Future<void> _refreshCache() async {
+  Future<void> _init() async {
     final activeProjects = _activeProjectsBox.values.toList()
       ..sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
 
@@ -51,10 +51,11 @@ class ProjectLocalStorage extends ProjectApi {
 
   @override
   Future<void> addProject({required Project project}) async {
-    final activeProjects = _activeProjectStreamController.value;
-    activeProjects.add(project);
+    final updatedProjects = [..._activeProjectStreamController.value];
+    updatedProjects.add(project);
+    updatedProjects.sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
 
-    _activeProjectStreamController.add(activeProjects);
+    _activeProjectStreamController.add(updatedProjects);
     _activeProjectsBox.put(project.id, project);
   }
 

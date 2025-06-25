@@ -3,31 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_hive_backend/api/project_models/project.dart';
-import 'package:projekt_hive/screens/project/view/project_screen.dart';
+import 'package:project_hive_backend/repository/project_repository.dart';
 import 'package:projekt_hive/widgets/edit_name/bloc/edit_name_bloc.dart';
 
 class EditNameWidget extends StatelessWidget {
   const EditNameWidget({
     super.key,
-    required String initialName,
-  }) : _initialName = initialName;
+    required this.project,
+    required this.active, 
+    required this.repository,
+  });
 
-  final String _initialName;
+  final Project project;
+  final bool active;
+  final ProjectRepository repository;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => EditNameBloc(_initialName)
-        ..add(const EditNameSubscriptionRequested()),
-      child: BlocListener<EditNameBloc, EditNameState>(
-        listenWhen: (previous, current) =>
-            previous.status != current.status &&
-            (current.status == EditNameStatus.success),
-        listener: (context, state) {
-          Navigator.of(context).pop();
-        },
-        child: const EditNameView(),
-      ),
+      create: (context) => EditNameBloc(project, active, repository),
+      child: const EditNameView(),
     );
   }
 }
@@ -62,12 +57,7 @@ class EditNameView extends StatelessWidget {
                 context.read<EditNameBloc>().add(const EditNameValidation());
 
                 if (state.validationErrors.isEmpty) {
-                  Navigator.of(context).pushReplacement(
-                    ProjectScreen.route(
-                      project: Project(name: state.text),
-                      active: true,
-                    ),
-                  );
+                  Navigator.pop(context);
                 }
               },
               child: const Text('Speichern'),
@@ -92,21 +82,14 @@ class _TextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!state.status.isLoadingOrSuccess)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              'Projekt',
-              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                    color: CupertinoColors.label.resolveFrom(context),
-                  ),
-            ),
-          ),
+          Padding(padding: const EdgeInsets.only(bottom: 8.0)),
         CupertinoTextField(
+          controller: context.read<EditNameBloc>().controller,
           key: const Key('editProjectView_text_textFormField'),
           enabled: !state.status.isLoadingOrSuccess,
           placeholder: hintText,
-          maxLength: 300,
-          maxLines: 7,
+          maxLength: 50,
+          maxLines: 1,
           inputFormatters: [
             LengthLimitingTextInputFormatter(300),
           ],

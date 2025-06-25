@@ -1,15 +1,16 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_hive_backend/api/project_models/project.dart';
 import 'package:project_hive_backend/repository/project_repository.dart';
+import 'package:projekt_hive/widgets/project_images/project_images.dart';
 import 'dart:convert';
-import 'package:provider/provider.dart';
 
-class ProjectImages extends StatelessWidget {
+class ProjectImagesWidget extends StatelessWidget {
   final Project project;
   final bool active;
 
-  const ProjectImages({
+  const ProjectImagesWidget({
     super.key,
     required this.project,
     required this.active,
@@ -17,82 +18,107 @@ class ProjectImages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text(
-            'Fotos',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return BlocProvider(
+      create: (context) => ProjectImagesBloc(
+        repository: context.read<ProjectRepository>(),
+        project: project,
+        active: active,
+      ),
+      child: const ProjectImagesView(),
+    );
+  }
+}
+
+class ProjectImagesView extends StatelessWidget {
+  const ProjectImagesView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = context.read<ProjectImagesBloc>();
+
+    return BlocBuilder<ProjectImagesBloc, ProjectImagesState>(
+      builder: (context, state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Fotos',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
-        ),
-        if (project.images.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  const Icon(CupertinoIcons.photo,
-                      size: 48, color: CupertinoColors.systemGrey),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Keine Fotos vorhanden',
-                    style: TextStyle(
-                      color: CupertinoColors.systemGrey,
-                      fontSize: 16,
+            if (state.project.images.isEmpty)
+              if (state.status == ProjectImagesStatus.loading)
+                Center(child: CupertinoActivityIndicator())
+              else
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        const Icon(CupertinoIcons.photo,
+                            size: 48, color: CupertinoColors.systemGrey),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Keine Fotos vorhanden',
+                          style: TextStyle(
+                            color: CupertinoColors.systemGrey,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        CupertinoButton.filled(
+                          onPressed: () => _pickImage(bloc, context),
+                          child: const Text('Foto hinzufügen'),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  CupertinoButton.filled(
-                    onPressed: () => _pickImage(context),
-                    child: const Text('Foto hinzufügen'),
+                )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: state.project.images.length,
+                itemBuilder: (context, index) {
+                  return _ImageTile(
+                    imageData: state.project.images[index],
+                    onDelete: () => _deleteImage(bloc, context, index),
+                  );
+                },
+              ),
+            if (state.project.images.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: CupertinoButton.filled(
+                  onPressed: () => _pickImage(bloc, context),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(CupertinoIcons.photo_camera),
+                      SizedBox(width: 8),
+                      Text('Foto hinzufügen'),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: project.images.length,
-            itemBuilder: (context, index) {
-              return _ImageTile(
-                imageData: project.images[index],
-                onDelete: () => _deleteImage(context, index),
-              );
-            },
-          ),
-        if (project.images.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: CupertinoButton.filled(
-              onPressed: () => _pickImage(context),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(CupertinoIcons.photo_camera),
-                  SizedBox(width: 8),
-                  Text('Foto hinzufügen'),
-                ],
-              ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  void _deleteImage(BuildContext context, int index) {
+  void _deleteImage(ProjectImagesBloc bloc, BuildContext context, int index) {
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
@@ -101,18 +127,14 @@ class ProjectImages extends StatelessWidget {
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(context),
-            isDestructiveAction: true,
             child: const Text('Abbrechen'),
           ),
           CupertinoDialogAction(
             onPressed: () {
-              project.images.removeAt(index);
-              context
-                  .read<ProjectRepository>()
-                  .updateProject(project: project, active: active);
+              bloc.add(ProjectImagesDeleteImage(index: index));
               Navigator.pop(context);
             },
-            isDefaultAction: true,
+            isDestructiveAction: true,
             child: const Text('Löschen'),
           ),
         ],
@@ -120,7 +142,7 @@ class ProjectImages extends StatelessWidget {
     );
   }
 
-  Future<void> _pickImage(BuildContext context) async {
+  Future<void> _pickImage(ProjectImagesBloc bloc, BuildContext context) async {
     final picker = ImagePicker();
 
     try {
@@ -135,12 +157,7 @@ class ProjectImages extends StatelessWidget {
         final bytes = await image.readAsBytes();
         final base64Image = base64Encode(bytes);
 
-        project.images.add(base64Image);
-        if (context.mounted) {
-          await context
-              .read<ProjectRepository>()
-              .updateProject(project: project, active: active);
-        }
+        bloc.add(ProjectImagesAddImage(image: base64Image));
       }
     } catch (e) {
       if (context.mounted) {

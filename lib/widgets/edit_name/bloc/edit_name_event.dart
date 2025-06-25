@@ -7,10 +7,6 @@ sealed class EditNameEvent extends Equatable {
   List<Object> get props => [];
 }
 
-final class EditNameSubscriptionRequested extends EditNameEvent {
-  const EditNameSubscriptionRequested();
-}
-
 final class EditNameTextChanged extends EditNameEvent {
   const EditNameTextChanged(
     this.text, {

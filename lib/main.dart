@@ -13,6 +13,7 @@ void main() async {
 
   await Hive.initFlutter();
   Hive.registerAdapter(ProjectAdapter());
+  Hive.registerAdapter(ProjectItemAdapter());
 
   // Open boxes
   await Hive.openBox<Project>('projects');

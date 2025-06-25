@@ -4,7 +4,8 @@ import 'package:project_hive_backend/api/project_models/project.dart';
 import 'package:project_hive_backend/repository/project_repository.dart';
 import 'package:projekt_hive/screens/project/bloc/project_bloc.dart';
 import 'package:projekt_hive/widgets/edit_name/view/edit_name_widget.dart';
-import 'package:projekt_hive/widgets/project_images.dart';
+import 'package:projekt_hive/widgets/project_details/view/project_details_widget.dart';
+import 'package:projekt_hive/widgets/project_images/view/project_images_widget.dart';
 
 class ProjectScreen extends StatelessWidget {
   const ProjectScreen({
@@ -25,19 +26,22 @@ class ProjectScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final repository = context.read<ProjectRepository>();
     return BlocProvider(
       create: (context) => ProjectBloc(
-        projectRepository: context.read<ProjectRepository>(),
+        projectRepository: repository,
         project: project,
         active: active,
-      ),
-      child: ProjectView(),
+      )..add(ProjectSubscriptionRequested()),
+      child: ProjectView(repository: repository),
     );
   }
 }
 
 class ProjectView extends StatelessWidget {
-  const ProjectView({super.key});
+  const ProjectView({super.key, required this.repository});
+
+  final ProjectRepository repository;
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +85,9 @@ class ProjectView extends StatelessWidget {
                             showCupertinoDialog<EditNameWidget>(
                               context: context,
                               builder: (context) => EditNameWidget(
-                                initialName: state.project.name,
+                                project: state.project,
+                                active: state.active,
+                                repository: repository,
                               ),
                             );
                           },
@@ -103,7 +109,6 @@ class ProjectView extends StatelessWidget {
                                   CupertinoDialogAction(
                                     onPressed: () =>
                                         Navigator.pop(dialogContext),
-                                    isDestructiveAction: true,
                                     child: const Text('Abbrechen'),
                                   ),
                                   CupertinoDialogAction(
@@ -140,8 +145,10 @@ class ProjectView extends StatelessWidget {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // ProjectDetails(project: state.project, active: state.active),
-                  ProjectImages(project: state.project, active: state.active),
+                  ProjectDetailsWidget(
+                      project: state.project, active: state.active),
+                  ProjectImagesWidget(
+                      project: state.project, active: state.active),
                 ],
               ),
             ),

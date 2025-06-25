@@ -10,22 +10,50 @@ part 'project_state.dart';
 
 class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
   ProjectBloc(
-      {required ProjectRepository projectRepository,
+      {required this.projectRepository,
       required Project project,
       required bool active})
-      : _projectRepository = projectRepository,
-        super(ProjectState(project: project, active: active)) {
+      : super(ProjectState(project: project, active: active)) {
+    on<ProjectSubscriptionRequested>(_onSubscriptionRequested);
+    on<ProjectProjectsUpdate>(_onProjectsUpdate);
     on<ProjectToggleArchivedStatus>(_onProjectToggleArchivedStatus);
     on<ProjectDeleteProject>(_onDeleteProject);
   }
 
-  final ProjectRepository _projectRepository;
+  final ProjectRepository projectRepository;
+  late final StreamSubscription<List<Project>>? _projectSubscription;
+
+  Future<void> _onSubscriptionRequested(
+    ProjectSubscriptionRequested event,
+    Emitter<ProjectState> emit,
+  ) async {
+    emit(state.copyWith(status: ProjectStatus.loading));
+
+    _projectSubscription = state.active
+        ? projectRepository.activeProjects
+            .listen((projects) => add(ProjectProjectsUpdate(projects)))
+        : projectRepository.archivedProjects
+            .listen((projects) => add(ProjectProjectsUpdate(projects)));
+  }
+
+  void _onProjectsUpdate(
+    ProjectProjectsUpdate event,
+    Emitter<ProjectState> emit,
+  ) {
+    final projects =
+        event.projects.where((p) => p.id == state.project.id).toList();
+
+    if (projects.isNotEmpty) {
+      emit(state.copyWith(
+          status: ProjectStatus.success, project: projects.first));
+    }
+  }
 
   void _onProjectToggleArchivedStatus(
     ProjectToggleArchivedStatus event,
     Emitter<ProjectState> emit,
   ) {
-    _projectRepository.toggleArchiveStatus(
+    projectRepository.toggleArchiveStatus(
       project: state.project,
       active: state.active,
     );
@@ -36,15 +64,15 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
     ProjectDeleteProject event,
     Emitter<ProjectState> emit,
   ) {
-    _projectRepository.toggleArchiveStatus(
+    projectRepository.deleteProject(
       project: state.project,
       active: state.active,
     );
-    emit(state.copyWith(active: !state.active));
   }
 
   @override
   Future<void> close() async {
+    await _projectSubscription?.cancel();
     return super.close();
   }
 }
