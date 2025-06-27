@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_hive_backend/repository/project_repository.dart';
 import 'package:projekt_hive/screens/archive/bloc/archive_bloc.dart';
-import 'package:projekt_hive/widgets/cloud_sync_indicator.dart';
 import 'package:projekt_hive/widgets/project_grid.dart';
 
 class ArchiveScreen extends StatelessWidget {
@@ -29,9 +28,6 @@ class ArchiveScreen extends StatelessWidget {
             children: [
               CupertinoNavigationBarBackButton(
                 onPressed: () => Navigator.of(context).pop(),
-              ),
-              CloudSyncIndicator(
-                syncService: context.read<ProjectRepository>().syncService,
               ),
             ],
           ),

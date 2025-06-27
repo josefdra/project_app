@@ -1,7 +1,10 @@
-import 'package:hive/hive.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:project_hive_backend/api/project_api.dart';
 import 'package:project_hive_backend/api/project_models/project.dart';
 import 'package:rxdart/subjects.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// {@template project_local_storage}
 /// A flutter implementation of the project ProjectLocalStorage
@@ -12,9 +15,11 @@ class ProjectLocalStorage extends ProjectApi {
     _init();
   }
 
-  final Box<Project> _activeProjectsBox = Hive.box<Project>('projects');
-  final Box<Project> _archivedProjectsBox =
-      Hive.box<Project>('archived_projects');
+  late final BoxCollection boxCollection;
+  late final CollectionBox<Project> _activeProjectsBox;
+  late final CollectionBox<Project> _archivedProjectsBox;
+  final versionKey = "__version_key__";
+  final _methodChannel = MethodChannel('com.draexl.project-manager/iCloud');
 
   late final _activeProjectStreamController =
       BehaviorSubject<List<Project>>.seeded(
@@ -32,15 +37,70 @@ class ProjectLocalStorage extends ProjectApi {
   late final Stream<List<Project>> _archivedProjects =
       _archivedProjectStreamController.stream;
 
+  Future<String?> _getPath() async {
+    try {
+      final path =
+          await _methodChannel.invokeMethod<String>('getICloudDocumentsPath');
+      debugPrint('iCloud Documents path: $path');
+      return path;
+    } on PlatformException catch (e) {
+      debugPrint('Failed to get iCloud Documents path: ${e.message}');
+      return null;
+    }
+  }
+
+  Future<void> _migrate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final version = prefs.getInt(versionKey);
+
+    if(version == null || version == 0){
+      final projectBox = await Hive.openBox<Project>('projects');
+      final projectMap = projectBox.toMap();
+
+      for (final key in projectMap.keys){
+        _activeProjectsBox.put(key, projectMap[key]!);
+      }
+
+      projectBox.deleteFromDisk();
+
+      final archivedProjectBox = await Hive.openBox<Project>('archived_projects');
+      final archivedProjectMap = archivedProjectBox.toMap();
+      
+      for (final key in archivedProjectMap.keys){
+        _archivedProjectsBox.put(key, archivedProjectMap[key]!);
+      }
+
+      archivedProjectBox.deleteFromDisk();
+      
+      prefs.setInt(versionKey, 1);
+    }
+  }
+
   Future<void> _init() async {
-    final activeProjects = _activeProjectsBox.values.toList()
+    await Hive.initFlutter();
+    Hive.registerAdapter(ProjectAdapter());
+    Hive.registerAdapter(ProjectItemAdapter());
+
+    final iCloudPath = await _getPath();
+    boxCollection = await BoxCollection.open(
+        'ProjectHive', {'projects', 'archivedProjects'},
+        path: iCloudPath);
+    _activeProjectsBox = await boxCollection.openBox<Project>('projects');
+    _archivedProjectsBox =
+        await boxCollection.openBox<Project>('archivedProjects');
+
+    _migrate();
+
+    final activeProjects = await _activeProjectsBox.getAllValues();
+    final activeProjectsList = [...activeProjects.values]
       ..sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
 
-    final archiveProjects = _archivedProjectsBox.values.toList()
+    final archivedProjects = await _archivedProjectsBox.getAllValues();
+    final archivedProjectsList = [...archivedProjects.values]
       ..sort((a, b) => b.lastEdited.compareTo(a.lastEdited));
 
-    _activeProjectStreamController.add(activeProjects);
-    _archivedProjectStreamController.add(archiveProjects);
+    _activeProjectStreamController.add(activeProjectsList);
+    _archivedProjectStreamController.add(archivedProjectsList);
   }
 
   @override
@@ -91,8 +151,11 @@ class ProjectLocalStorage extends ProjectApi {
 
     activeProjects.removeAt(projectIndex);
     await _activeProjectsBox.delete(project.id);
-    archivedProjects.add(project);
-    await _archivedProjectsBox.put(project.id, project);
+
+    final newProject = project.copyWith();
+
+    archivedProjects.add(newProject);
+    await _archivedProjectsBox.put(newProject.id, newProject);
 
     _activeProjectStreamController.add(activeProjects);
     _archivedProjectStreamController.add(archivedProjects);
@@ -110,8 +173,11 @@ class ProjectLocalStorage extends ProjectApi {
 
     archivedProjects.removeAt(projectIndex);
     await _archivedProjectsBox.delete(project.id);
-    activeProjects.add(project);
-    await _activeProjectsBox.put(project.id, project);
+
+    final newProject = project.copyWith();
+
+    activeProjects.add(newProject);
+    await _activeProjectsBox.put(newProject.id, newProject);
 
     _archivedProjectStreamController.add(archivedProjects);
     _activeProjectStreamController.add(activeProjects);

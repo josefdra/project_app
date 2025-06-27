@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:project_hive_backend/repository/project_repository.dart';
 import 'package:projekt_hive/screens/archive/view/archive_screen.dart';
 import 'package:projekt_hive/screens/home/bloc/home_bloc.dart';
-import 'package:projekt_hive/widgets/cloud_sync_indicator.dart';
 import 'package:projekt_hive/widgets/edit_project/view/edit_project_widget.dart';
 import 'package:projekt_hive/widgets/project_grid.dart';
 
@@ -26,9 +25,6 @@ class HomeScreen extends StatelessWidget {
       child: CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           middle: const Text('Projekte'),
-          leading: CloudSyncIndicator(
-            syncService: context.read<ProjectRepository>().syncService,
-          ),
           trailing: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
