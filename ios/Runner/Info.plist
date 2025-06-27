@@ -52,7 +52,7 @@
             <key>NSUbiquitousContainerName</key>
             <string>ProjectHive</string>
             <key>NSUbiquitousContainerSupportedFolderLevels</key>
-            <string>Any</string>
+            <string>ANY</string>
         </dict>
     </dict>
 </dict>

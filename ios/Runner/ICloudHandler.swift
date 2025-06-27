@@ -6,7 +6,7 @@ class ICloudHandler {
 
     init(binaryMessenger: FlutterBinaryMessenger) {
         methodChannel = FlutterMethodChannel(
-            name: "com.draexl.project_manager/icloud",
+            name: "com.draexl.project-manager/iCloud",
             binaryMessenger: binaryMessenger
         )
 
@@ -28,40 +28,43 @@ class ICloudHandler {
 
     private func getICloudDocumentsPath(result: @escaping FlutterResult) {
         DispatchQueue.global(qos: .background).async {
-            // Get the iCloud container URL for our app
-            if let iCloudContainerURL = FileManager.default.url(forUbiquityContainerIdentifier: "iCloud.com.draexl.project-manager") {
-                // Create a documents directory if it doesn't exist
-                let documentsURL = iCloudContainerURL.appendingPathComponent("Documents")
-
-                do {
-                    if !FileManager.default.fileExists(atPath: documentsURL.path) {
+            let containerUrl: URL? = FileManager.default.url(
+                forUbiquityContainerIdentifier: nil
+            )?.appendingPathComponent("Documents")
+            
+            // Check for container existence and create if needed
+            if let url = containerUrl {
+                var isDirectory: ObjCBool = false
+                if !FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) {
+                    do {
                         try FileManager.default.createDirectory(
-                            at: documentsURL,
+                            at: url,
                             withIntermediateDirectories: true,
                             attributes: nil
                         )
-                    }
-
-                    // Return the path on the main thread
-                    DispatchQueue.main.async {
-                        result(documentsURL.path)
-                    }
-                } catch {
-                    DispatchQueue.main.async {
-                        result(FlutterError(
-                            code: "DIRECTORY_CREATION_FAILED",
-                            message: "Failed to create iCloud Documents directory: \(error.localizedDescription)",
-                            details: nil
-                        ))
+                    } catch {
+                        print("Error creating iCloud directory: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            result(FlutterError(
+                                code: "DIRECTORY_CREATION_FAILED",
+                                message: "Failed to create iCloud directory",
+                                details: error.localizedDescription
+                            ))
+                        }
+                        return
                     }
                 }
-            } else {
-                // iCloud is not available
-                DispatchQueue.main.async {
+            }
+
+            // Return the path on the main thread
+            DispatchQueue.main.async {
+                if let path = containerUrl?.path {
+                    result(path)
+                } else {
                     result(FlutterError(
                         code: "ICLOUD_UNAVAILABLE",
-                        message: "iCloud is not available. Make sure the user is signed in to iCloud and the app has the necessary entitlements.",
-                        details: nil
+                        message: "iCloud container is not available",
+                        details: "Make sure iCloud is enabled and the app has proper entitlements"
                     ))
                 }
             }

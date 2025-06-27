@@ -28,16 +28,25 @@ class ProjectSyncService {
 
   final _projectsBoxName = 'projects';
   final _archivedProjectsBoxName = 'archived_projects';
-  final _methodChannel = MethodChannel('com.draexl.project_manager/icloud');
+  final _methodChannel = MethodChannel('com.draexl.project-manager/iCloud');
   String? _iCloudDocumentsPath;
   bool iCloudAvailable = false;
+
+  Future<String?> _getPath() async {
+    try {
+      final path = await _methodChannel.invokeMethod<String>('getICloudDocumentsPath');
+      debugPrint('iCloud Documents path: $path');
+      return path;
+    } on PlatformException catch (e) {
+      debugPrint('Failed to get iCloud Documents path: ${e.message}');
+      return null;
+    }
+  }
 
   /// Initialize the sync service
   Future<void> _init() async {
     try {
-      _iCloudDocumentsPath =
-          await _methodChannel.invokeMethod<String>('getICloudDocumentsPath');
-
+      _iCloudDocumentsPath = await _getPath();
       if (_iCloudDocumentsPath == null) return;
 
       iCloudAvailable = true;
